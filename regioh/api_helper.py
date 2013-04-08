@@ -7,9 +7,6 @@ from boto import dynamodb
 from default_config import AWS_ACCESS_KEY
 from default_config import AWS_SECRET_ACCESS_KEY
 from default_config import AWS_SENDER
-from default_config import TWILIO_SID
-from default_config import TWILIO_TOKEN
-from default_config import TWILIO_FROM
 
 def notify_email(email, content):
     conn = ses.connect_to_region(
@@ -22,15 +19,6 @@ def notify_email(email, content):
                     'IOH Confirmation',
                     content,
                     [email])
-
-def notify_sms(mobile, otp):
-    from twilio.rest import TwilioRestClient
-    twilio = TwilioRestClient(TWILIO_SID, TWILIO_TOKEN)
-    message = twilio.sms.messages.create(
-        body="Enter {0} on the confirm "
-        "page to verify your account".format(otp),
-        to=mobile,
-        from_=TWILIO_FROM)
 
 def get_dynamodb_table():
     conn = dynamodb.connect_to_region(
@@ -53,16 +41,14 @@ def get_dynamodb_table():
         table = conn.get_table('auth')
     return table
 
-def addto_dynamodb(email, pubkey=None, mobile=None, token=None, otp=None):
+def addto_dynamodb(email, pubkey=None, token=None):
     """Return status, record"""
     tbl = get_dynamodb_table()
     item = tbl.new_item(
         hash_key=email,
         attrs={
             'pubkey': pubkey,
-            'mobile': mobile,
             'token': token,
-            'otp': otp,
             'status': 'inactive',
         }
         )
@@ -70,7 +56,7 @@ def addto_dynamodb(email, pubkey=None, mobile=None, token=None, otp=None):
     item.put()
     return item
 
-def query_dynamodb(email, pubkey=None, mobile=None, token=None, otp=None):
+def query_dynamodb(email, pubkey=None, token=None):
     """Return status, record"""
     tbl = get_dynamodb_table()
     if not tbl.has_item(hash_key=email):
@@ -80,11 +66,7 @@ def query_dynamodb(email, pubkey=None, mobile=None, token=None, otp=None):
         )
     if pubkey and item['pubkey'] != pubkey:
         return 'invalid', {}
-    if mobile and item['mobile'] != mobile:
-        return 'invalid', {}
     if token and item['token'] != token:
-        return 'invalid', {}
-    if otp and item['otp'] != otp:
         return 'invalid', {}
     return item['status'], item
 

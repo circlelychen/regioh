@@ -16,7 +16,6 @@ class RegTestCase(unittest.TestCase):
         srv.app.config['TESTING'] = True
         self.app = srv.app.test_client()
         mock = self.create_patch(srv.api_helper, 'get_dynamodb_table')
-        self.create_patch(srv.api_helper, 'notify_sms')
         self.create_patch(srv.api_helper, 'notify_email')
         self.rsakey = RSA.generate(1024)
 
@@ -34,7 +33,6 @@ class RegTestCase(unittest.TestCase):
         rv = self.app.post('/v1/check',
             data = {
                 'email': 'cl_chang@farfar.away',
-                'mobile': '3939889',
                 'pubkey': 'N/A',}
             )
         jrep = json.loads(rv.data)
@@ -45,7 +43,6 @@ class RegTestCase(unittest.TestCase):
         rv = self.app.post('/v1/register',
             data = {
                 'email': 'cl_chang@farfar.away',
-                'mobile': '3939889',
                 'pubkey': self.rsakey.publickey().exportKey(),
             }
             )

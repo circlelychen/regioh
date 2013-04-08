@@ -1,6 +1,6 @@
 regioh
 ==============================
-A sms/email verification service.
+A email verification service.
 
 HowToRun
 ==============================
@@ -11,6 +11,5 @@ HowToRun
 NeedToRun
 ==============================
 
-  * [Twilio](https://www.twilio.com/)
   * [Amazon Dynamodb](http://aws.amazon.com/dynamodb/)
   * [Amazon Simple Email Service](http://aws.amazon.com/ses/)

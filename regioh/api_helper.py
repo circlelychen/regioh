@@ -120,11 +120,6 @@ def query_dynamodb(email, pubkey=None, linked_id=None, token=None):
 def update_dynamodb(item):
     item.put()
 
-def generate_OTP():
-    from random import choice
-    from string import digits
-    return ''.join(choice(digits) for x in xrange(6))
-
 def generate_R():
     """Generate 256-bit random string R"""
     from Crypto import Random

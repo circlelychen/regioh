@@ -72,8 +72,8 @@ def get_dynamodb_table():
         table = conn.create_table(
             name='auth',
             schema=auth_table_schema,
-            read_units=10,
-            write_units=10
+            read_units=1,
+            write_units=1
             )
     else:
         table = conn.get_table('auth')

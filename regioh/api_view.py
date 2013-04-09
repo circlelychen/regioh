@@ -27,9 +27,6 @@ def _extract_request_data(request):
         pub_key = jreq.get('pubkey', None)
         linked_data = jreq.get('linkedin_data', None)
         token = jreq.get('token', None)
-    if request.files and request.files.get('pubkey', None):
-        fs_pubkey = request.files['pubkey']
-        pub_key = fs_pubkey.read()
     return user_email, pub_key, linked_data, token
 
 @app.route('/v1/check', methods=['POST'])

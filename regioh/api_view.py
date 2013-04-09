@@ -50,8 +50,8 @@ def v1_register():
     from api_helper import compute_C
     from api_helper import notify_email
     from binascii import hexlify
-    user_email, pub_key, _, _ = _extract_request_data(request)
-    status, record = query_dynamodb(user_email, pub_key)
+    user_email, _, _, _ = _extract_request_data(request)
+    status, record = query_dynamodb(user_email)
     if status == u'active':
         abort(403, {'code': 403, 'message': 'Invalid registration'})
 #    elif status == u'inactive':  # mean a pending activation is on the way
@@ -63,7 +63,7 @@ def v1_register():
     R = generate_R()
     C = compute_C(pub_key, R)
     # store in dynamoDB
-    addto_dynamodb(user_email, pub_key, token=hexlify(R))
+    addto_dynamodb(user_email, token=hexlify(R))
     # now email with C
     notify_email(user_email, C)
     if app.config['TESTING']:
@@ -92,7 +92,7 @@ def v1_resend():
 @app.route('/v1/confirm', methods=['POST'])
 def v1_confirm():
     from binascii import hexlify
-    user_email, pub_key, linked_token, token = _extract_request_data(request)
+    user_email, pub_key_id, linked_token, token = _extract_request_data(request)
     status, record = query_dynamodb(user_email, token=token)
     if status == u'active':
         pass
@@ -105,6 +105,7 @@ def v1_confirm():
     linked_id = retrieve_linkedin_id(linked_token)
     if linked_id:
         record['linkedin_id'] = linked_id
+        record['pubkey'] = pub_key_id
         record['status'] = u'active'
         update_dynamodb(record)
     return jsonify(code=200, status=record['status'])

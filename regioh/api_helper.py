@@ -6,7 +6,7 @@ from boto import ses
 from boto import dynamodb
 from default_config import AWS_ACCESS_KEY
 from default_config import AWS_SECRET_ACCESS_KEY
-from default_config import AWS_SENDER
+from default_config import AWS_SES_SENDER
 
 LINKEDIN_API_URL = 'https://api.linkedin.com/'
 
@@ -53,7 +53,7 @@ def notify_email(email, content):
         aws_secret_access_key=AWS_SECRET_ACCESS_KEY)
     if not conn:
         raise Exception
-    conn.send_email(AWS_SENDER,
+    conn.send_email(AWS_SES_SENDER,
                     'IOH Confirmation',
                     content,
                     [email])

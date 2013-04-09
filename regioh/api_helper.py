@@ -8,6 +8,44 @@ from default_config import AWS_ACCESS_KEY
 from default_config import AWS_SECRET_ACCESS_KEY
 from default_config import AWS_SENDER
 
+LINKEDIN_API_URL = 'https://api.linkedin.com/'
+
+def retrieve_linkedin_id(linked_token):
+    import requests
+    import urlparse
+    url = urlparse.urljoin(LINKEDIN_API_URL,
+                           '/v1/people/~:(id)')
+    resp = requests.get(url,
+                        params={
+                            'oauth2_access_token': linked_token.strip(),
+                            'format': 'json'
+                        }
+                       )
+    if resp.status_code == 200:
+        return resp.json()['id']
+    return None
+
+def verify_linkedin_status(linked_ids):
+    from boto.dynamodb.condition import EQ
+    tbl = get_dynamodb_table()
+    actives = tbl.scan(scan_filter = {
+        "status": EQ('active')
+    })#, attributes_to_get = ['linkedin_id', 'status'])
+    result = {}
+    #for active in actives:
+    #    print active
+    #    if active.get('linkedin_id', None) is None:
+    #        active.delete()
+
+    for linked_id in linked_ids:
+        result[linked_id] = 'inactive'
+    for active in actives:
+        active_id = active['linkedin_id']
+        if active_id in linked_ids:
+            result[active_id] = 'active'
+    return result
+
+
 def notify_email(email, content):
     conn = ses.connect_to_region(
         'us-east-1',
@@ -41,22 +79,29 @@ def get_dynamodb_table():
         table = conn.get_table('auth')
     return table
 
-def addto_dynamodb(email, pubkey=None, token=None):
+def addto_dynamodb(email, pubkey=None, token=None, linked_id='N/A'):
     """Return status, record"""
     tbl = get_dynamodb_table()
+    if tbl.has_item(hash_key=email):
+        item = tbl.get_item(
+            hash_key=email,
+            )
+        #if item['status'] != 'active':
+        item.delete()
     item = tbl.new_item(
         hash_key=email,
         attrs={
             'pubkey': pubkey,
+            'linkedin_id': linked_id,
             'token': token,
             'status': 'inactive',
         }
         )
-    print item
+    #print item
     item.put()
     return item
 
-def query_dynamodb(email, pubkey=None, token=None):
+def query_dynamodb(email, pubkey=None, linked_id=None, token=None):
     """Return status, record"""
     tbl = get_dynamodb_table()
     if not tbl.has_item(hash_key=email):
@@ -65,6 +110,8 @@ def query_dynamodb(email, pubkey=None, token=None):
         hash_key=email
         )
     if pubkey and item['pubkey'] != pubkey:
+        return 'invalid', {}
+    if linked_id and item['linkedin_id'] != linked_id:
         return 'invalid', {}
     if token and item['token'] != token:
         return 'invalid', {}
@@ -85,6 +132,8 @@ def generate_R():
 
 def compute_C(rsa_pub_key_string, rand32):
     from Crypto.PublicKey import RSA
+    from Crypto.Cipher import PKCS1_v1_5
     from binascii import hexlify
     rsa_pub = RSA.importKey(rsa_pub_key_string)
-    return hexlify(rsa_pub.encrypt(rand32, 32)[0])
+    cipher = PKCS1_v1_5.new(rsa_pub)
+    return hexlify(cipher.encrypt(rand32))

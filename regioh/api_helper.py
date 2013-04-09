@@ -60,7 +60,7 @@ def notify_email(email, content):
 
 def get_dynamodb_table():
     conn = dynamodb.connect_to_region(
-        'ap-northeast-1',
+        'us-west-2',
         aws_access_key_id=AWS_ACCESS_KEY,
         aws_secret_access_key=AWS_SECRET_ACCESS_KEY)
     tables = conn.list_tables()

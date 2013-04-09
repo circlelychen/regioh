@@ -1,11 +1,11 @@
 regioh
 ==============================
-A email verification service.
+A email verification with linkedin id binding service.
 
 HowToRun
 ==============================
 
-  * Create .aws_auth, .linked and .twilio with your AWS key/secret, Linkedin key/secret.
+  * Create .aws_auth with your AWS key/secret.
 
 
 NeedToRun

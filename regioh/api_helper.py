@@ -9,6 +9,8 @@ from default_config import AWS_SECRET_ACCESS_KEY
 from default_config import AWS_SES_SENDER
 
 LINKEDIN_API_URL = 'https://api.linkedin.com/'
+GOOGLE_DOWNLOAD_URL = 'https://docs.google.com/uc'
+
 
 def retrieve_linkedin_id(linked_token):
     import requests
@@ -45,6 +47,36 @@ def verify_linkedin_status(linked_ids):
             result[active_id] = 'active'
     return result
 
+def get_db_data(linked_ids):
+    from boto.dynamodb.condition import EQ
+    tbl = get_dynamodb_table()
+    actives = tbl.scan(scan_filter = {
+        "status": EQ('active')
+    #})
+    }, attributes_to_get = ['linkedin_id', 'status',
+                           'pubkey', 'email'])
+    result = {}
+
+    for linked_id in linked_ids:
+        result[linked_id] = {}
+    for active in actives:
+        active_id = active['linkedin_id']
+        if active_id in linked_ids:
+            result[active_id] = active
+    return result
+
+def fetch_public_key(google_file_id):
+    import requests
+    url = GOOGLE_DOWNLOAD_URL
+    resp = requests.get(url,
+                        params={
+                            'export': 'download',
+                            'id': google_file_id,
+                        }
+                       )
+    if resp.status_code == 200:
+        return resp.content
+    return None
 
 def notify_email(email, content):
     conn = ses.connect_to_region(

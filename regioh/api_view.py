@@ -49,7 +49,7 @@ def v1_register():
     from api_helper import compute_C
     from api_helper import notify_email
     from binascii import hexlify
-    user_email, pubkey_id, _, _ = _extract_request_data(request)
+    user_email, pubkey_id, linked_token, _ = _extract_request_data(request)
     status, record = query_dynamodb(user_email)
     if status == u'active':
         abort(403, {'code': 403, 'message': 'Already registered'})
@@ -60,16 +60,20 @@ def v1_register():
     else:  # 'empty'
         pass
     R = generate_R()
-    pub_key = fetch_public_key(pubkey_id)
-    C = compute_C(pub_key, R)
-    # store in dynamoDB
-    addto_dynamodb(user_email, pubkey_id, token=hexlify(R))
+    #pub_key = fetch_public_key(pubkey_id)
+    #C = compute_C(pub_key, R)
+    linked_id = retrieve_linkedin_id(linked_token)
+    if linked_id:
+        # store in dynamoDB
+        addto_dynamodb(user_email, pubkey_id, token=hexlify(R),
+                       linked_id=linked_id, status='active'
+                      )
     # now email with C
-    notify_email(user_email, C)
-    if app.config['TESTING']:
-        return jsonify(code=200, status='inactive', C=C, R=hexlify(R))
-    else:
-        return jsonify(code=200, status='inactive')
+#    notify_email(user_email, C)
+#    if app.config['TESTING']:
+#        return jsonify(code=200, status='inactive', C=C, R=hexlify(R))
+#    else:
+    return jsonify(code=200, status='active')
 
 
 @app.route('/v1/resend', methods=['POST'])

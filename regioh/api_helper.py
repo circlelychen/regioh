@@ -111,7 +111,8 @@ def get_dynamodb_table():
         table = conn.get_table('auth')
     return table
 
-def addto_dynamodb(email, pubkey=None, token=None, linked_id='N/A'):
+def addto_dynamodb(email, pubkey=None, token=None,
+                   linked_id='N/A', status='inactive'):
     """Return status, record"""
     tbl = get_dynamodb_table()
     if tbl.has_item(hash_key=email):
@@ -126,7 +127,7 @@ def addto_dynamodb(email, pubkey=None, token=None, linked_id='N/A'):
             'pubkey': pubkey,
             'linkedin_id': linked_id,
             'token': token,
-            'status': 'inactive',
+            'status': status,
         }
         )
     #print item

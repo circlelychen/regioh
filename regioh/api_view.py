@@ -52,7 +52,7 @@ def v1_register():
     user_email, pubkey_id, _, _ = _extract_request_data(request)
     status, record = query_dynamodb(user_email)
     if status == u'active':
-        abort(403, {'code': 403, 'message': 'Invalid registration'})
+        abort(403, {'code': 403, 'message': 'Already registered'})
 #    elif status == u'inactive':  # mean a pending activation is on the way
 #        abort(403, {'code': 403, 'message': 'Pending registration'})
     elif status == u'invalid':

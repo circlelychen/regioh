@@ -51,20 +51,24 @@ def v1_register():
     from binascii import hexlify
     user_email, pubkey_id, linked_token, _ = _extract_request_data(request)
     status, record = query_dynamodb(user_email)
-    if status == u'active':
-        abort(403, {'code': 403, 'message': 'Already registered'})
+#    if status == u'active':
+#        abort(403, {'code': 403, 'message': 'Already registered'})
 #    elif status == u'inactive':  # mean a pending activation is on the way
 #        abort(403, {'code': 403, 'message': 'Pending registration'})
-    elif status == u'invalid':
-        pass
-    else:  # 'empty'
-        pass
+#    elif status == u'invalid':
+#        pass
+#    else:  # 'empty'
+#        pass
     R = generate_R()
     #pub_key = fetch_public_key(pubkey_id)
     #C = compute_C(pub_key, R)
     linked_id = retrieve_linkedin_id(linked_token)
     if linked_id:
         # store in dynamoDB
+        if record.get('linkedin_id', None) and \
+           linked_id != record['linkedin_id']:
+            return jsonify(code=403, status='inactive')
+
         addto_dynamodb(user_email, pubkey_id, token=hexlify(R),
                        linked_id=linked_id, status='active'
                       )
@@ -73,7 +77,8 @@ def v1_register():
 #    if app.config['TESTING']:
 #        return jsonify(code=200, status='inactive', C=C, R=hexlify(R))
 #    else:
-    return jsonify(code=200, status='active')
+        return jsonify(code=200, status='active')
+    return jsonify(code=200, status='inactive')
 
 
 @app.route('/v1/resend', methods=['POST'])

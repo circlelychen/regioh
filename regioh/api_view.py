@@ -18,6 +18,8 @@ def _extract_request_data(request):
     if request.form:
         user_email = request.form.get('email', None)
         pub_key = request.form.get('pubkey', None)
+        pub_key_md5 = request.form.get('pubkey_md5', 'N/A')
+        permid = request.form.get('permid', 'N/A')
         linked_data = request.form.get('linkedin_data', None)
         token = request.form.get('token', None)
     else:
@@ -26,15 +28,18 @@ def _extract_request_data(request):
         except:
             abort(400, {'message': 'incorrect POST data: {0}'.format(request.data)})
         user_email = jreq.get('email', None)
+        pub_key_md5 = jreq.get('pubkey_md5', '')
+        permid = jreq.get('permid', '')
         pub_key = jreq.get('pubkey', None)
-        linked_data = jreq.get('linkedin_data', None)
+        linked_data = jreq.get('linkedin_data', {})
+        print linked_data
         token = jreq.get('token', None)
-    return user_email, pub_key, linked_data, token
+    return user_email, pub_key, linked_data, token, pub_key_md5, permid
 
 @app.route('/v1/check', methods=['POST'])
 def v1_check():
     """Verify if the (email, public key) is active/present"""
-    user_email, _, linked_id, _ = _extract_request_data(request)
+    user_email, _, linked_id, _, _, _ = _extract_request_data(request)
     if user_email is None or linked_id is None:
         abort(400, {'code': 400,
                     'message': 'missing email or linked id'
@@ -49,7 +54,7 @@ def v1_register():
     from api_helper import compute_C
     from api_helper import notify_email
     from binascii import hexlify
-    user_email, pubkey_id, linked_token, _ = _extract_request_data(request)
+    user_email, pubkey_id, linked_token, _, key_md5, perm_id = _extract_request_data(request)
     status, record = query_dynamodb(user_email)
 #    if status == u'active':
 #        abort(403, {'code': 403, 'message': 'Already registered'})
@@ -70,6 +75,7 @@ def v1_register():
             return jsonify(code=403, status='inactive')
 
         addto_dynamodb(user_email, pubkey_id, token=hexlify(R),
+                       pubkey_md5=key_md5, perm_id=perm_id,
                        linked_id=linked_id, status='active'
                       )
     # now email with C
@@ -86,7 +92,7 @@ def v1_resend():
     from api_helper import compute_C
     from api_helper import notify_email
     from binascii import unhexlify
-    user_email, pubkey_id, _, _ = _extract_request_data(request)
+    user_email, pubkey_id, _, _, _, _ = _extract_request_data(request)
     status, record = query_dynamodb(user_email, pub_key)
     if status != u'inactive':  # mean a pending activation is on the way
         abort(403, {'code': 403, 'message': 'Invalid registration'})
@@ -102,7 +108,7 @@ def v1_resend():
 @app.route('/v1/confirm', methods=['POST'])
 def v1_confirm():
     from binascii import hexlify
-    user_email, _, linked_token, token = _extract_request_data(request)
+    user_email, _, linked_token, token, _, _ = _extract_request_data(request)
     status, record = query_dynamodb(user_email, token=token)
     if status == u'active':
         pass

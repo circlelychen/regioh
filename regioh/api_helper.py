@@ -15,14 +15,21 @@ GOOGLE_DOWNLOAD_URL = 'https://docs.google.com/uc'
 def retrieve_linkedin_id(linked_token):
     import requests
     import urlparse
+    from requests_oauthlib import OAuth1
     url = urlparse.urljoin(LINKEDIN_API_URL,
                            '/v1/people/~:(id)')
+    oauth = OAuth1(linked_token['client_id'],
+                   client_secret=linked_token['client_secret'],
+                   resource_owner_key=linked_token['oauth_token'],
+                   resource_owner_secret=linked_token['oauth_secret'])
+
     resp = requests.get(url,
                         params={
-                            'oauth2_access_token': linked_token.strip(),
                             'format': 'json'
-                        }
+                        },
+                        auth=oauth
                        )
+    print resp.content
     if resp.status_code == 200:
         return resp.json()['id']
     return None
@@ -54,7 +61,8 @@ def get_db_data(linked_ids):
         "status": EQ('active')
     #})
     }, attributes_to_get = ['linkedin_id', 'status',
-                           'pubkey', 'email'])
+                           'pubkey', 'email', 'permid', 'pubkey_md5'
+                           ])
     result = {}
 
     for linked_id in linked_ids:
@@ -112,6 +120,7 @@ def get_dynamodb_table():
     return table
 
 def addto_dynamodb(email, pubkey=None, token=None,
+                   pubkey_md5='N/A', perm_id='N/A',
                    linked_id='N/A', status='inactive'):
     """Return status, record"""
     tbl = get_dynamodb_table()
@@ -124,7 +133,9 @@ def addto_dynamodb(email, pubkey=None, token=None,
     item = tbl.new_item(
         hash_key=email,
         attrs={
+            'permid': perm_id,
             'pubkey': pubkey,
+            'pubkey_md5': pubkey_md5,
             'linkedin_id': linked_id,
             'token': token,
             'status': status,
@@ -137,6 +148,7 @@ def addto_dynamodb(email, pubkey=None, token=None,
 def query_dynamodb(email, pubkey=None, linked_id=None, token=None):
     """Return status, record"""
     tbl = get_dynamodb_table()
+    print email
     if not tbl.has_item(hash_key=email):
         return 'invalid', {}
     item = tbl.get_item(

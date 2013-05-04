@@ -166,14 +166,15 @@ def notify_email(email, content):
         aws_secret_access_key=AWS_SECRET_ACCESS_KEY)
     if not conn:
         raise Exception
+    print "AWS_SES_SENDER: {0}".format(AWS_SES_SENDER)
     conn.send_email(AWS_SES_SENDER,
-                    'IOH Confirmation',
+                    'Welcome to Cipherbox',
                     content,
                     [email])
 
 def get_dynamodb_table():
     conn = dynamodb.connect_to_region(
-        'us-west-2',
+        'ap-northeast-1',
         aws_access_key_id=AWS_ACCESS_KEY,
         aws_secret_access_key=AWS_SECRET_ACCESS_KEY)
     tables = conn.list_tables()
@@ -192,7 +193,7 @@ def get_dynamodb_table():
         table = conn.get_table('auth')
     return table
 
-def addto_dynamodb(email, pubkey=None, token=None,
+def addto_dynamodb(email, pubkey='N/A', token='N/A',
                    pubkey_md5='N/A', perm_id='N/A',
                    linked_id='N/A', status='inactive'):
     """Return status, record"""
@@ -201,27 +202,27 @@ def addto_dynamodb(email, pubkey=None, token=None,
         item = tbl.get_item(
             hash_key=email,
             )
-        #if item['status'] != 'active':
         item.delete()
-    item = tbl.new_item(
-        hash_key=email,
-        attrs={
-            'permid': perm_id,
-            'pubkey': pubkey,
-            'pubkey_md5': pubkey_md5,
-            'linkedin_id': linked_id,
-            'token': token,
-            'status': status,
-        }
-        )
-    #print item
+    try:
+        item = tbl.new_item(
+            hash_key=email,
+            attrs={
+                'permid': perm_id,
+                'pubkey': pubkey,
+                'pubkey_md5': pubkey_md5,
+                'linkedin_id': linked_id,
+                'token': token,
+                'status': status,
+            }
+            )
+    except Exception as e:
+        print e
     item.put()
     return item
 
 def query_dynamodb(email, pubkey=None, linked_id=None, token=None):
     """Return status, record"""
     tbl = get_dynamodb_table()
-    print email
     if not tbl.has_item(hash_key=email):
         return 'invalid', {}
     item = tbl.get_item(

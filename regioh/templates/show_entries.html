@@ -1,0 +1,75 @@
+{% extends "layout.html" %}
+{% block container%}
+<div class="well">
+    <div class="row">
+        <div class="span12">
+            <form name="search" method="get" action="{{url_for('users')}}" class="form-inline" >
+                <input name="keyword" class="span5" type="text"  placeholder="Username" >
+                <button type="submit" class="btn btn-primary"> <i class="icon-search icon-white"></i></button>
+            </form>
+        </div>
+    </div>
+    <table class="table table-hover table-striped">
+        <thead>
+            <tr>
+                <th> </th>
+                <th>Username</th>
+                <th>Date Activated</th>
+                <th>Date Deactive</th>
+                <th>Key Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in records %}
+            <tr>
+                <td><input type="checkbox"></td>
+                <td>{{ item.username }}</td>
+                <td>{{ item.start_datetime}}</td>
+                <td>{{ item.end_datetime}}</td>
+                {% if not item.registered %}
+                <td><span class="label label-default">Unregister</span></td>
+                <td></td>
+                {% elif item.activated %}
+                <td><span class="label label-success">Active</span></td>
+                <td><a class="btn_revoke" href="#Modal" role="button" data-id="{{item._id}}" data-username="{{item.username}}"  data-toggle="modal"><i class="icon-trash"></i></a></td>
+                {% else %}
+                <td><span class="label label-important">Inactive</span></td>
+                <td></td>
+                {% endif %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Modal: the dialog to confirm revoke user -->
+<div id="Modal" class="modal hide" tabindex="-1" role="dialog" aria-labelledby="ModalLabel" aria-hidden="true">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">x</button>
+        <h3 id="myModalLabel">Key Revocation</h3>
+    </div>
+    <div class="modal-body">
+        <p>Are you sure to revoke key on <b><span id="selected_username"></span></b>?</p>
+    </div>
+    <form name="revoke" action="{{url_for('revoke')}}" method="post" >
+        <input type="hidden" name="_id">
+    </form>
+    <div class="modal-footer">
+        <button class="btn" data-dismiss="modal" aria-hidden="true">Cancel</button>
+        <button class="btn btn-primary" data-dismiss="modal" >Confirm</button>
+    </div>
+</div>
+
+<!-- Modal: the dialog to confirm revoke user }}}-->
+<script type="text/javascript">
+    $(document).on("click", ".btn_revoke", function (){
+        $('#selected_username').html( $(this).data('username') )
+        $("form[name='revoke'] input[name='_id']").val( $(this).data('id') )
+        $('#Modal').modal('show');
+    })
+    $('#Modal .modal-footer .btn-primary').click(function(){ 
+        $("form[name='revoke']").submit()
+    })
+</script>
+{% endblock %}

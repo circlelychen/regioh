@@ -1,0 +1,15 @@
+{% extends "layout.html" %}
+{% block jumbotron%}
+{%if name %}
+    <h1>Hi, {{name}}</h1>
+{%endif%}
+{%if message %}
+    <p class="lead">{{message}}</p>
+{%endif%}
+{%if email %}
+    <p class="lead"><i>{{email}}</i></p>
+{%endif%}
+<p class="lead">Yours Securely,<br>-The Cloudioh Team</p>
+<a class="btn btn-large btn-success" href="#">Cipherbox for Windows</a>
+<a class="btn btn-large btn-success" href="#">Cipherbox for Mac OSX</a>
+{% endblock %}

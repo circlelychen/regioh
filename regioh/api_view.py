@@ -3,13 +3,14 @@
 """
 import os
 from regioh import app
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, redirect, url_for, render_template
 from .exceptions import abort
 from api_helper import addto_dynamodb
 from api_helper import fetch_public_key
 from api_helper import query_dynamodb
 from api_helper import get_db_data
 from api_helper import retrieve_linkedin_id
+from api_helper import retrieve_linkedin_id_and_name
 from api_helper import update_dynamodb
 from api_helper import verify_linkedin_status
 import json
@@ -22,6 +23,7 @@ def _extract_request_data(request):
         permid = request.form.get('permid', 'N/A')
         linked_data = request.form.get('linkedin_data', None)
         token = request.form.get('token', None)
+        linkedin_id = request.form.get('linkedin_id', None)
     else:
         try:
             jreq = json.loads(request.data)
@@ -32,14 +34,14 @@ def _extract_request_data(request):
         permid = jreq.get('permid', '')
         pub_key = jreq.get('pubkey', None)
         linked_data = jreq.get('linkedin_data', {})
-        print linked_data
         token = jreq.get('token', None)
-    return user_email, pub_key, linked_data, token, pub_key_md5, permid
+        linkedin_id = jreq.get('linkedin_id', None)
+    return user_email, pub_key, linked_data, token, pub_key_md5, permid, linkedin_id
 
 @app.route('/v1/check', methods=['POST'])
 def v1_check():
     """Verify if the (email, public key) is active/present"""
-    user_email, _, linked_id, _, _, _ = _extract_request_data(request)
+    user_email, _, linked_id, _, _, _, linkedin_id = _extract_request_data(request)
     if user_email is None or linked_id is None:
         abort(400, {'code': 400,
                     'message': 'missing email or linked id'
@@ -50,39 +52,30 @@ def v1_check():
 
 @app.route('/v1/register', methods=['POST'])
 def v1_register():
-    from api_helper import generate_R
-    from api_helper import compute_C
-    from api_helper import notify_email
-    from binascii import hexlify
-    user_email, pubkey_id, linked_token, _, key_md5, perm_id = _extract_request_data(request)
+    user_email, pubkey_id, linked_token, _, key_md5, perm_id, linkedin_id = _extract_request_data(request)
     status, record = query_dynamodb(user_email)
-#    if status == u'active':
-#        abort(403, {'code': 403, 'message': 'Already registered'})
-#    elif status == u'inactive':  # mean a pending activation is on the way
-#        abort(403, {'code': 403, 'message': 'Pending registration'})
-#    elif status == u'invalid':
-#        pass
-#    else:  # 'empty'
-#        pass
-    R = generate_R()
-    #pub_key = fetch_public_key(pubkey_id)
-    #C = compute_C(pub_key, R)
-    linked_id = retrieve_linkedin_id(linked_token)
-    if linked_id:
-        # store in dynamoDB
-        if record.get('linkedin_id', None) and \
-           linked_id != record['linkedin_id']:
-            return jsonify(code=403, status='inactive')
 
-        addto_dynamodb(user_email, pubkey_id, token=hexlify(R),
-                       pubkey_md5=key_md5, perm_id=perm_id,
-                       linked_id=linked_id, status='active'
-                      )
-    # now email with C
-#    notify_email(user_email, C)
-#    if app.config['TESTING']:
-#        return jsonify(code=200, status='inactive', C=C, R=hexlify(R))
-#    else:
+    if status == u'active':
+        abort(403, {'code': 403, 'message': 'Already registered'})
+    elif status == u'invalid':
+        pass
+    else:  # 'empty'
+        pass
+
+    if status == u'inactive':  # mean a pending activation is on the way
+        #match linkedin_id in dynamo and user request
+        #linkedin_id = retrieve_linkedin_id(linked_token)
+        if record['linkedin_id'] != linkedin_id:
+            abort(403, {'code': 403, 'message': 'incorrect linkedin_id'})
+        record['permid'] = perm_id
+        record['pubkey'] = pubkey_id
+        record['pubkey_md5'] = key_md5
+        record['status'] = 'active'
+        update_dynamodb(record)
+
+    if app.config['TESTING']:
+        return jsonify(code=200, status='inactive', C=C, R=hexlify(R))
+    else:
         return jsonify(code=200, status='active')
     return jsonify(code=200, status='inactive')
 
@@ -92,7 +85,7 @@ def v1_resend():
     from api_helper import compute_C
     from api_helper import notify_email
     from binascii import unhexlify
-    user_email, pubkey_id, _, _, _, _ = _extract_request_data(request)
+    user_email, pubkey_id, _, _, _, _, linkedin_id = _extract_request_data(request)
     status, record = query_dynamodb(user_email, pub_key)
     if status != u'inactive':  # mean a pending activation is on the way
         abort(403, {'code': 403, 'message': 'Invalid registration'})

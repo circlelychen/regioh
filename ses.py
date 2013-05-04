@@ -16,4 +16,4 @@ conn = boto.ses.connect_to_region(
     'us-east-1',
     aws_access_key_id=AWS_ACCESS_KEY,
     aws_secret_access_key=AWS_SECRET_ACCESS_KEY)
-conn.verify_email_address('cl_sung@cloudioh.com')
+conn.verify_email_address('howard_chen@cloudioh.com')

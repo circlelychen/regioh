@@ -238,10 +238,17 @@ def query_dynamodb(email, pubkey=None, linked_id=None, token=None):
 def update_dynamodb(item):
     item.put()
 
-def generate_R():
+def _generate_R():
     """Generate 256-bit random string R"""
     from Crypto import Random
     return Random.new().read(32)
+
+def generate_security_code():
+    """Generate R-R-R-R-R random string R"""
+    import random
+    import string
+    populate=string.uppercase+string.digits
+    return "-".join([ "".join(random.sample(populate, 5)) for i in range(5)])
 
 def compute_C(rsa_pub_key_string, rand32):
     from Crypto.PublicKey import RSA

@@ -23,3 +23,4 @@ def setup_logging():
 setup_logging()
 
 import regioh.api_view
+import regioh.views

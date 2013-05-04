@@ -98,26 +98,6 @@ def v1_resend():
     return jsonify(code=200, status='inactive')
 
 
-@app.route('/v1/confirm', methods=['POST'])
-def v1_confirm():
-    from binascii import hexlify
-    user_email, _, linked_token, token, _, _ = _extract_request_data(request)
-    status, record = query_dynamodb(user_email, token=token)
-    if status == u'active':
-        pass
-        #abort(403, {'code': 403, 'message': 'Invalid confirmation'})
-    elif status == u'invalid':
-        abort(404, {'code': 404, 'message': 'No such record'})
-    else:  # 'empty'
-        pass
-    # use linked_data to verify the user id
-    linked_id = retrieve_linkedin_id(linked_token)
-    if linked_id:
-        record['linkedin_id'] = linked_id
-        record['status'] = u'active'
-        update_dynamodb(record)
-    return jsonify(code=200, status=record['status'])
-
 @app.route('/v1/linkedin', methods=['POST'])
 def v1_linkedin():
     try:

@@ -17,6 +17,7 @@ if os.path.isfile(AWS_AUTH_FILE):
         jobj = json.load(fin)
         AWS_ACCESS_KEY = jobj['access_key']
         AWS_SECRET_ACCESS_KEY = jobj['secret_key']
+        AWS_SES_SENDER = jobj['aws_ses_sender']
 
 TWILIO_SID = None
 TWILIO_TOKEN = None

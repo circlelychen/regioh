@@ -7,10 +7,54 @@ from boto import dynamodb
 from default_config import AWS_ACCESS_KEY
 from default_config import AWS_SECRET_ACCESS_KEY
 from default_config import AWS_SES_SENDER
+import requests
+import urlparse
 
 LINKEDIN_API_URL = 'https://api.linkedin.com/'
 GOOGLE_DOWNLOAD_URL = 'https://docs.google.com/uc'
 
+CLIENT_ID = 'b7yzd71kbuy5'
+CLIENT_SECRET = 'EpF8TeBrNgoj8UMj'
+REDIRECT_URI = 'http://192.168.1.10:5000/signup'
+
+def _linkedin_request(url, linked_token):
+    #use linkedin API with Oauth 1.0 token
+    resp = requests.get(url=url,
+                        params={
+                            "oauth2_access_token": linked_token,
+                            "format": "json"
+                        },
+                        verify=False)
+    if resp.status_code == 200:
+        return resp.status_code, resp.json()
+    return resp.status_code, {'reason': 'unknown error', 'raw': resp.content}
+
+def get_linkedin_basic_profile(linked_token):
+    url = urlparse.urljoin(
+        LINKEDIN_API_URL,
+        'v1/people/~:(id,first-name,last-name,email-address)')
+    return _linkedin_request(url, linked_token.strip())
+
+def retrieve_linkedin_id_and_name(linked_token):
+    import requests
+    import urlparse
+    from requests_oauthlib import OAuth1
+    url = urlparse.urljoin(LINKEDIN_API_URL,
+                           '/v1/people/~:(id,first-name,last-name)')
+    oauth = OAuth1(linked_token['client_id'],
+                   client_secret=linked_token['client_secret'],
+                   resource_owner_key=linked_token['oauth_token'],
+                   resource_owner_secret=linked_token['oauth_secret'])
+
+    resp = requests.get(url,
+                        params={
+                            'format': 'json'
+                        },
+                        auth=oauth
+                       )
+    if resp.status_code == 200:
+        return resp.json()['id'], resp.json()['firstName'], resp.json()['lastName']
+    return None, None, None
 
 def retrieve_linkedin_id(linked_token):
     import requests
@@ -29,10 +73,39 @@ def retrieve_linkedin_id(linked_token):
                         },
                         auth=oauth
                        )
-    print resp.content
     if resp.status_code == 200:
         return resp.json()['id']
     return None
+
+def get_oauth2_access_token(code):
+    client_id = CLIENT_ID
+    client_secret = CLIENT_SECRET
+    redirect_url = REDIRECT_URI 
+    access_token_url = 'https://www.linkedin.com/uas/oauth2/accessToken'
+    params = {"client_id": client_id, "client_secret": client_secret,
+              "code": code, "grant_type": "authorization_code",
+              "redirect_uri":redirect_url}
+    resp = requests.request('POST', access_token_url, params=params)
+    if resp.status_code == 200:
+        return resp.json()
+    else:
+        return None
+
+def get_oauth2_request_url():
+    client_id = CLIENT_ID
+    client_secret = CLIENT_SECRET
+    redirect_url = REDIRECT_URI 
+    authorize_url = 'https://www.linkedin.com/uas/oauth2/authorization'
+    scope = "r_basicprofile%20r_emailaddress"
+    state = "DCEEFWF45453sdffef424"
+
+    params = []
+    params.append("response_type={0}".format("code"))
+    params.append("client_id={0}".format(client_id))
+    params.append("scope={0}".format(scope))
+    params.append("state={0}".format(state))
+    params.append("redirect_uri={0}".format(redirect_url))
+    return "{0}?{1}".format(authorize_url, "&".join(params))
 
 def verify_linkedin_status(linked_ids):
     from boto.dynamodb.condition import EQ

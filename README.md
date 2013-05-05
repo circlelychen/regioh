@@ -6,6 +6,7 @@ HowToRun
 ==============================
 
   * Create .aws_auth with your AWS key/secret.
+  * Create .lk_auth with your Linkedin key/secret and redirect_url for OAuth 2.0.
 
 
 NeedToRun

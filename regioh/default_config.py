@@ -19,6 +19,14 @@ if os.path.isfile(AWS_AUTH_FILE):
         AWS_SECRET_ACCESS_KEY = jobj['secret_key']
         AWS_SES_SENDER = jobj['aws_ses_sender']
 
+LK_AUTH_FILE = os.path.join(os.path.dirname(PROJECT_ROOT), '.lk_auth')
+if os.path.isfile(LK_AUTH_FILE):
+    with open(LK_AUTH_FILE, 'rb') as fin:
+        jobj = json.load(fin)
+        LK_CLIENT_ID = jobj['client_id']
+        LK_CLIENT_SECRET = jobj['client_secret']
+        LK_REDIRECT_URL = jobj['redirect_url']
+
 TWILIO_SID = None
 TWILIO_TOKEN = None
 TWILIO_FROM = None

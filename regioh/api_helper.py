@@ -7,15 +7,14 @@ from boto import dynamodb
 from default_config import AWS_ACCESS_KEY
 from default_config import AWS_SECRET_ACCESS_KEY
 from default_config import AWS_SES_SENDER
+from default_config import LK_CLIENT_SECRET
+from default_config import LK_CLIENT_ID
+from default_config import LK_REDIRECT_URL
 import requests
 import urlparse
 
 LINKEDIN_API_URL = 'https://api.linkedin.com/'
 GOOGLE_DOWNLOAD_URL = 'https://docs.google.com/uc'
-
-CLIENT_ID = 'b7yzd71kbuy5'
-CLIENT_SECRET = 'EpF8TeBrNgoj8UMj'
-REDIRECT_URI = 'http://192.168.1.10:5000/signup'
 
 def _linkedin_request(url, linked_token):
     #use linkedin API with Oauth 1.0 token
@@ -78,9 +77,9 @@ def retrieve_linkedin_id(linked_token):
     return None
 
 def get_oauth2_access_token(code):
-    client_id = CLIENT_ID
-    client_secret = CLIENT_SECRET
-    redirect_url = REDIRECT_URI 
+    client_id = LK_CLIENT_ID
+    client_secret = LK_CLIENT_SECRET
+    redirect_url = LK_REDIRECT_URL 
     access_token_url = 'https://www.linkedin.com/uas/oauth2/accessToken'
     params = {"client_id": client_id, "client_secret": client_secret,
               "code": code, "grant_type": "authorization_code",
@@ -92,9 +91,9 @@ def get_oauth2_access_token(code):
         return None
 
 def get_oauth2_request_url():
-    client_id = CLIENT_ID
-    client_secret = CLIENT_SECRET
-    redirect_url = REDIRECT_URI 
+    client_id = LK_CLIENT_ID
+    client_secret = LK_CLIENT_SECRET
+    redirect_url = LK_REDIRECT_URL 
     authorize_url = 'https://www.linkedin.com/uas/oauth2/authorization'
     scope = "r_basicprofile%20r_emailaddress"
     state = "DCEEFWF45453sdffef424"

@@ -24,6 +24,7 @@ def _extract_request_data(request):
         linked_data = request.form.get('linkedin_data', None)
         token = request.form.get('token', None)
         linkedin_id = request.form.get('linkedin_id', None)
+        security_code = request.form.get('security_code', None)
     else:
         try:
             jreq = json.loads(request.data)
@@ -36,12 +37,13 @@ def _extract_request_data(request):
         linked_data = jreq.get('linkedin_data', {})
         token = jreq.get('token', None)
         linkedin_id = jreq.get('linkedin_id', None)
-    return user_email, pub_key, linked_data, token, pub_key_md5, permid, linkedin_id
+        security_code = jreq.get('security_code', None)
+    return user_email, pub_key, linked_data, token, pub_key_md5, permid, linkedin_id, security_code
 
 @app.route('/v1/check', methods=['POST'])
 def v1_check():
     """Verify if the (email, public key) is active/present"""
-    user_email, _, linked_id, _, _, _, linkedin_id = _extract_request_data(request)
+    user_email, _, linked_id, _, _, _, linkedin_id, security_code = _extract_request_data(request)
     if user_email is None or linked_id is None:
         abort(400, {'code': 400,
                     'message': 'missing email or linked id'
@@ -52,9 +54,10 @@ def v1_check():
 
 @app.route('/v1/register', methods=['POST'])
 def v1_register():
-    user_email, pubkey_id, linked_token, _, key_md5, perm_id, linkedin_id = _extract_request_data(request)
+    user_email, pubkey_id, linked_token, _, key_md5, perm_id, linkedin_id, security_code = _extract_request_data(request)
     status, record = query_dynamodb(user_email)
-
+    if not record:
+        abort(404, {'code': 404, 'message': 'user_email not be signed up '})
     if status == u'active':
         abort(403, {'code': 403, 'message': 'Already registered'})
     elif status == u'invalid':
@@ -65,8 +68,12 @@ def v1_register():
     if status == u'inactive':  # mean a pending activation is on the way
         #match linkedin_id in dynamo and user request
         #linkedin_id = retrieve_linkedin_id(linked_token)
+        print linkedin_id
         if record['linkedin_id'] != linkedin_id:
-            abort(403, {'code': 403, 'message': 'incorrect linkedin_id'})
+            abort(403, {'code': 403, 'message': 'linkedin_id mismatch'})
+        print security_code
+        if record['token'] != security_code:
+            abort(403, {'code': 403, 'message': 'security_code mismatch'})
         record['permid'] = perm_id
         record['pubkey'] = pubkey_id
         record['pubkey_md5'] = key_md5
@@ -85,7 +92,7 @@ def v1_resend():
     from api_helper import compute_C
     from api_helper import notify_email
     from binascii import unhexlify
-    user_email, pubkey_id, _, _, _, _, linkedin_id = _extract_request_data(request)
+    user_email, pubkey_id, _, _, _, _, linkedin_id, security_code = _extract_request_data(request)
     status, record = query_dynamodb(user_email, pub_key)
     if status != u'inactive':  # mean a pending activation is on the way
         abort(403, {'code': 403, 'message': 'Invalid registration'})

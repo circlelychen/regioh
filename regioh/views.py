@@ -56,38 +56,45 @@ def signup():
                                        )
                                )
             elif status == u'inactive':
-                # a pending activation is on the way
-                expires_in_utc = datetime.datetime.strptime(
+                from default_config import TOKEN_LIFE_TIME
+                utc_now = datetime.datetime.utcnow()
+                utc_now_10_min_later = utc_now+datetime.timedelta(
+                    minutes=TOKEN_LIFE_TIME)
+                existing_expires_in_utc = datetime.datetime.strptime(
                     record.get('expires_in_utc', None),
                     "%Y-%m-%d %H:%M")
-                return redirect(url_for('notify',
-                                       name=base64.b64encode(first_name),
-                                       email=base64.b64encode(user_email),
-                                       expires_in_utc=base64.b64encode(
-                                           expires_in_utc.strftime("%Y-%m-%d %H:%S")),
-                                       message=base64.b64encode(
-                                           'Registration Pending. '
-                                           'Please check your primary email address:'
-                                           )
-                                       )
+                if utc_now < existing_expires_in_utc:
+                    # not be expired, extend life time 
+                    record['expires_in_utc']=utc_now_10_min_later.strftime(
+                        "%Y-%m-%d %H:%M")
+                    update_dynamodb(record)
+                    return redirect(
+                        url_for('notify',
+                                name=base64.b64encode(first_name),
+                                email=base64.b64encode(user_email),
+                                expires_in_utc=base64.b64encode(
+                                    record['expires_in_utc']),
+                                message=base64.b64encode(
+                                    'Registration Pending. '
+                                    'Please check your primary '
+                                    'email address:'
+                                    )
                                )
+                        )
             elif status == u'invalid':
                 pass
             else:  # 'empty'
                 pass
 
-            # create account on REG server and send notification
-            from api_helper import generate_security_code
-            from api_helper import notify_email
+            # The following part will [add/update] account with new token
+            # on REG server and send notification
             security_code = generate_security_code()
-            # create user acount in REG DynamoDB with 'inactive' status 
             item = addto_dynamodb(linked_id, token=security_code,
                            status='inactive'
                           )
             expires_in_utc = datetime.datetime.strptime(
                 item.get('expires_in_utc', None),
                 "%Y-%m-%d %H:%M")
-            # generate security code and email it to user
             title = "Hi {0} {1}".format(first_name, last_name)
             content = "Below please find your one-time security code for Cipherbox setup." 
             footer = "Yours Securely,\n-The Cipherbox Team"

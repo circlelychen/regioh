@@ -10,6 +10,7 @@ from default_config import AWS_SES_SENDER
 from default_config import LK_CLIENT_SECRET
 from default_config import LK_CLIENT_ID
 from default_config import LK_REDIRECT_URL
+from default_config import TOKEN_LIFE_TIME
 import requests
 import urlparse
 
@@ -205,7 +206,7 @@ def addto_dynamodb(linked_id, pubkey='N/A', token='N/A',
         item.delete()
     try:
         utc_now = datetime.datetime.utcnow()
-        utc_now_10_min_later=utc_now + datetime.timedelta(minutes=10)
+        utc_now_10_min_later=utc_now + datetime.timedelta(minutes=TOKEN_LIFE_TIME)
 
         item = tbl.new_item(
             hash_key=linked_id,

@@ -11,6 +11,9 @@ from api_helper import get_oauth2_request_url
 from api_helper import get_linkedin_basic_profile
 from api_helper import addto_dynamodb
 from api_helper import query_dynamodb
+from api_helper import update_dynamodb
+from api_helper import generate_security_code
+from api_helper import notify_email
 import json
 import base64
 import datetime
@@ -30,7 +33,7 @@ def signup():
         code = request.args.get('code', None)
         token = get_oauth2_access_token(code)
 
-        #retrive linkedin _id, and primary e-mail
+        #retrive linkedin _id, and primary e-mail from Linkedin Server
         status, profile = get_linkedin_basic_profile(token.get("access_token"))
         if status == 200 and profile :
             user_email = profile.get("emailAddress", None)
@@ -40,12 +43,14 @@ def signup():
 
             #check whether account has primary email
             if not user_email:
-                return redirect(url_for('notify',
-                                       name = base64.b64encode(first_name),
-                                       message=base64.b64encode(
-                                           'Non primary e-mail from LinkedIn')
-                                       )
-                               )
+                return redirect(
+                    url_for('notify',
+                            name = base64.b64encode(first_name),
+                            message=base64.b64encode(
+                                'Non primary e-mail from LinkedIn'
+                                )
+                           )
+                    )
             #check account status in REG DynamodDB 
             status, record = query_dynamodb(linked_id)
             if status == u'active':
@@ -103,18 +108,19 @@ def signup():
                                                   security_code, footer,
                                                   signature
                                                  ]))
-            return redirect(url_for('notify',
-                                   name=base64.b64encode(first_name),
-                                   email=base64.b64encode(user_email),
-                                   expires_in_utc=base64.b64encode(
-                                       expires_in_utc.strftime("%Y-%m-%d %H:%S")),
-                                   message=base64.b64encode(
-                                       'Your one-time security code has been emailed '
-                                       'to your LinkedIn primary email address:'
-                                       )
-                                  )
-                           )
-    #redirect to oauth2 page for LinkedIn user
+            return redirect(
+                url_for('notify',
+                        name=base64.b64encode(first_name),
+                        email=base64.b64encode(user_email),
+                        expires_in_utc=base64.b64encode(
+                            expires_in_utc.strftime("%Y-%m-%d %H:%S")),
+                        message=base64.b64encode(
+                            'Your one-time security code has been emailed '
+                            'to your LinkedIn primary email address:'
+                            )
+                       )
+                )
+    #the following part will redirect to oauth2 page for LinkedIn user
     return redirect(get_oauth2_request_url())
 
 

@@ -216,8 +216,8 @@ def addto_dynamodb(linked_id, pubkey='N/A', token='N/A',
                 'email': email,
                 'token': token,
                 'status': status,
-                'created_in_utc': utc_now.isoformat(' '),
-                'expires_in_utc': utc_now_10_min_later.isoformat(' ')
+                'created_in_utc': utc_now.strftime("%Y-%m-%d %H:%M"),
+                'expires_in_utc': utc_now_10_min_later.strftime("%Y-%m-%d %H:%M")
             }
             )
     except Exception as e:

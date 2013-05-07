@@ -13,10 +13,12 @@ from api_helper import addto_dynamodb
 from api_helper import query_dynamodb
 import json
 import base64
+import datetime
 
 @app.route('/signup', methods=['GET'])
 def signup():
     if request.args.get('error', None):
+        #redirect by Linked Authentication Server if user cancel
         return redirect(url_for('notify',
                                message=base64.b64encode(
                                    'Non-Authorized access from LinkedIn')
@@ -24,6 +26,7 @@ def signup():
                        )
 
     if request.args.get('code', None) and request.args.get('state', None):
+        #redirect by Linked Authentication Server if user allow
         code = request.args.get('code', None)
         token = get_oauth2_access_token(code)
 
@@ -35,7 +38,7 @@ def signup():
             last_name = profile.get("lastName", None)
             linked_id = profile.get("id", None)
 
-            #check validation for Linkedin User
+            #check whether account has primary email
             if not user_email:
                 return redirect(url_for('notify',
                                        name = base64.b64encode(first_name),
@@ -43,7 +46,7 @@ def signup():
                                            'Non primary e-mail from LinkedIn')
                                        )
                                )
-            #check status for Linkedin User
+            #check account status in REG DynamodDB 
             status, record = query_dynamodb(linked_id)
             if status == u'active':
                 return redirect(url_for('notify',
@@ -52,10 +55,16 @@ def signup():
                                            'Already registered')
                                        )
                                )
-            elif status == u'inactive':  # mean a pending activation is on the way
+            elif status == u'inactive':
+                # a pending activation is on the way
+                expires_in_utc = datetime.datetime.strptime(
+                    record.get('expires_in_utc', None),
+                    "%Y-%m-%d %H:%M")
                 return redirect(url_for('notify',
                                        name=base64.b64encode(first_name),
                                        email=base64.b64encode(user_email),
+                                       expires_in_utc=base64.b64encode(
+                                           expires_in_utc.strftime("%Y-%m-%d %H:%S")),
                                        message=base64.b64encode(
                                            'Registration Pending. '
                                            'Please check your primary email address:'
@@ -67,16 +76,18 @@ def signup():
             else:  # 'empty'
                 pass
 
-            #generate security code and email it to user
+            # create account on REG server and send notification
             from api_helper import generate_security_code
             from api_helper import notify_email
             security_code = generate_security_code()
-            if linked_id:
-                addto_dynamodb(linked_id, token=security_code,
-                               status='inactive'
-                              )
-
-            # now email with security code
+            # create user acount in REG DynamoDB with 'inactive' status 
+            item = addto_dynamodb(linked_id, token=security_code,
+                           status='inactive'
+                          )
+            expires_in_utc = datetime.datetime.strptime(
+                item.get('expires_in_utc', None),
+                "%Y-%m-%d %H:%M")
+            # generate security code and email it to user
             title = "Hi {0} {1}".format(first_name, last_name)
             content = "Below please find your one-time security code for Cipherbox setup." 
             footer = "Yours Securely,\n-The Cipherbox Team"
@@ -88,13 +99,14 @@ def signup():
             return redirect(url_for('notify',
                                    name=base64.b64encode(first_name),
                                    email=base64.b64encode(user_email),
+                                   expires_in_utc=base64.b64encode(
+                                       expires_in_utc.strftime("%Y-%m-%d %H:%S")),
                                    message=base64.b64encode(
                                        'Your one-time security code has been emailed '
                                        'to your LinkedIn primary email address:'
                                        )
                                   )
                            )
-
     #redirect to oauth2 page for LinkedIn user
     return redirect(get_oauth2_request_url())
 
@@ -108,11 +120,14 @@ def notify():
         name = base64.b64decode(request.args['name'])
     if request.args.get('email',None):
         email = base64.b64decode(request.args['email'])
+    if request.args.get('expires_in_utc',None):
+        expires_in_utc = base64.b64decode(request.args['expires_in_utc'])
     if request.args.get('message',None):
         message = base64.b64decode(request.args['message'])
     return render_template('notify.html',
                            name=name,
                            email=email,
+                           expires_in_utc=expires_in_utc,
                            message=message
                           )
 

@@ -48,14 +48,14 @@ def v1_check():
         abort(400, {'code': 400,
                     'message': 'missing email or linked id'
                    })
-    status, record = query_dynamodb(user_email, linked_id=linked_id)
+    status, record = query_dynamodb(linked_id, email=user_email)
     return jsonify(code=200, status=status)
 
 
 @app.route('/v1/register', methods=['POST'])
 def v1_register():
     user_email, pubkey_id, linked_token, _, key_md5, perm_id, linkedin_id, security_code = _extract_request_data(request)
-    status, record = query_dynamodb(user_email)
+    status, record = query_dynamodb(linkedin_id)
     if not record:
         abort(404, {'code': 404, 'message': 'user_email not be signed up '})
     if status == u'active':
@@ -68,13 +68,12 @@ def v1_register():
     if status == u'inactive':  # mean a pending activation is on the way
         #match linkedin_id in dynamo and user request
         #linkedin_id = retrieve_linkedin_id(linked_token)
-        print linkedin_id
         if record['linkedin_id'] != linkedin_id:
             abort(403, {'code': 403, 'message': 'linkedin_id mismatch'})
-        print security_code
         if record['token'] != security_code:
             abort(403, {'code': 403, 'message': 'security_code mismatch'})
         record['permid'] = perm_id
+        record['email'] = user_email
         record['pubkey'] = pubkey_id
         record['pubkey_md5'] = key_md5
         record['status'] = 'active'
@@ -93,7 +92,7 @@ def v1_resend():
     from api_helper import notify_email
     from binascii import unhexlify
     user_email, pubkey_id, _, _, _, _, linkedin_id, security_code = _extract_request_data(request)
-    status, record = query_dynamodb(user_email, pub_key)
+    status, record = query_dynamodb(linkedin_id, email=user_email, pubkey=pub_key)
     if status != u'inactive':  # mean a pending activation is on the way
         abort(403, {'code': 403, 'message': 'Invalid registration'})
     pub_key = fetch_public_key(pubkey_id)

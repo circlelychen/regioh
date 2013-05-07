@@ -179,7 +179,7 @@ def get_dynamodb_table():
     tables = conn.list_tables()
     if 'auth' not in tables:
         auth_table_schema = conn.create_schema(
-            hash_key_name='email',
+            hash_key_name='linkedin_id',
             hash_key_proto_value=str,
             )
         table = conn.create_table(
@@ -192,26 +192,32 @@ def get_dynamodb_table():
         table = conn.get_table('auth')
     return table
 
-def addto_dynamodb(email, pubkey='N/A', token='N/A',
+def addto_dynamodb(linked_id, pubkey='N/A', token='N/A',
                    pubkey_md5='N/A', perm_id='N/A',
-                   linked_id='N/A', status='inactive'):
+                   email='N/A', status='inactive'):
     """Return status, record"""
+    import datetime
     tbl = get_dynamodb_table()
-    if tbl.has_item(hash_key=email):
+    if tbl.has_item(hash_key=linked_id):
         item = tbl.get_item(
-            hash_key=email,
+            hash_key=linked_id,
             )
         item.delete()
     try:
+        utc_now = datetime.datetime.utcnow()
+        utc_now_10_min_later=utc_now + datetime.timedelta(minutes=10)
+
         item = tbl.new_item(
-            hash_key=email,
+            hash_key=linked_id,
             attrs={
                 'permid': perm_id,
                 'pubkey': pubkey,
                 'pubkey_md5': pubkey_md5,
-                'linkedin_id': linked_id,
+                'email': email,
                 'token': token,
                 'status': status,
+                'created_in_utc': utc_now.isoformat(' '),
+                'expires_in_utc': utc_now_10_min_later.isoformat(' ')
             }
             )
     except Exception as e:
@@ -219,17 +225,17 @@ def addto_dynamodb(email, pubkey='N/A', token='N/A',
     item.put()
     return item
 
-def query_dynamodb(email, pubkey=None, linked_id=None, token=None):
+def query_dynamodb(linked_id, pubkey=None, email=None, token=None):
     """Return status, record"""
     tbl = get_dynamodb_table()
-    if not tbl.has_item(hash_key=email):
+    if not tbl.has_item(hash_key=linked_id):
         return 'invalid', {}
     item = tbl.get_item(
-        hash_key=email
+        hash_key=linked_id
         )
     if pubkey and item['pubkey'] != pubkey:
         return 'invalid', {}
-    if linked_id and item['linkedin_id'] != linked_id:
+    if email and item['email'] != email:
         return 'invalid', {}
     if token and item['token'] != token:
         return 'invalid', {}

@@ -44,7 +44,7 @@ def signup():
                                        )
                                )
             #check status for Linkedin User
-            status, record = query_dynamodb(user_email)
+            status, record = query_dynamodb(linked_id)
             if status == u'active':
                 return redirect(url_for('notify',
                                        name=base64.b64encode(first_name),
@@ -72,8 +72,8 @@ def signup():
             from api_helper import notify_email
             security_code = generate_security_code()
             if linked_id:
-                addto_dynamodb(user_email, token=security_code,
-                               linked_id=linked_id, status='inactive'
+                addto_dynamodb(linked_id, token=security_code,
+                               status='inactive'
                               )
 
             # now email with security code

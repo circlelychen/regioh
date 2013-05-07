@@ -42,5 +42,5 @@ def deploy():
             run("git clone git@github.com:circlelychen/regioh.git %s" % proj_dir)
     with cd(proj_dir):
         run("git pull --rebase")
-    #run("touch uwsgi.reload")
+    run("touch uwsgi.reload")
 

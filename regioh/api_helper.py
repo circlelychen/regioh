@@ -13,6 +13,7 @@ from default_config import LK_REDIRECT_URL
 from default_config import TOKEN_LIFE_TIME
 import requests
 import urlparse
+import datetime
 
 LINKEDIN_API_URL = 'https://api.linkedin.com/'
 GOOGLE_DOWNLOAD_URL = 'https://docs.google.com/uc'
@@ -127,6 +128,36 @@ def verify_linkedin_status(linked_ids):
             result[active_id] = 'active'
     return result
 
+def get_token_status(token):
+    from boto.dynamodb.condition import EQ
+    from default_config import MESSAGE
+    tbl = get_dynamodb_table()
+    actives = tbl.scan(
+        scan_filter = {
+            "token": EQ(token)},
+        attributes_to_get = ['status',
+                             'expires_in_utc']
+        )
+    if actives.count == 0:
+        return MESSAGE['no_linkedin_account']
+
+    result = {}
+    for active in actives:
+        result = dict(status=active['status'],
+                      expires_in_utc=active['expires_in_utc'])
+
+    if result['status'] == 'active':
+        return MESSAGE['active_linkedin_account_exist']
+    if result['status'] == 'inactive':
+        utc_now = datetime.datetime.utcnow()
+        expires_in_utc = datetime.datetime.strptime(
+            result['expires_in_utc'],
+            "%Y-%m-%d %H:%M")
+        if utc_now > expires_in_utc:
+            return MESSAGE['code_expired']
+        else:
+            return MESSAGE['success']
+
 def get_db_data(linked_ids):
     from boto.dynamodb.condition import EQ
     tbl = get_dynamodb_table()
@@ -197,7 +228,6 @@ def addto_dynamodb(linked_id, pubkey='N/A', token='N/A',
                    pubkey_md5='N/A', perm_id='N/A',
                    email='N/A', status='inactive'):
     """Return status, record"""
-    import datetime
     tbl = get_dynamodb_table()
     if tbl.has_item(hash_key=linked_id):
         item = tbl.get_item(

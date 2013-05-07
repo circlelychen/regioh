@@ -44,5 +44,4 @@ MESSAGE = {'sucess': 'SUCCESS',
            'no_linkedin_account': 'NO_LINKEDIN_ACCOUNT',
            'code_expired': 'CODE_EXPIRES',
            'active_linkedin_account_exist': 'ACTIVE_LINKEDIN_ACCOUNT_EXIST',
-           'active': 'ACTIVE',
           }

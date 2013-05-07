@@ -13,6 +13,7 @@ from api_helper import retrieve_linkedin_id
 from api_helper import retrieve_linkedin_id_and_name
 from api_helper import update_dynamodb
 from api_helper import verify_linkedin_status
+from api_helper import get_token_status
 import json
 
 def _extract_request_data(request):
@@ -51,6 +52,16 @@ def v1_check():
     status, record = query_dynamodb(linked_id, email=user_email)
     return jsonify(code=200, status=status)
 
+@app.route('/v1/token_status', methods=['GET'])
+def v1_token_status():
+    """Get token status"""
+    token = request.args.get('token',None)
+    if not token:
+        abort(400, {'code': 400,
+                    'message': 'missing code'
+                   })
+    status = get_token_status(token)
+    return jsonify(code=200, status=status)
 
 @app.route('/v1/register', methods=['POST'])
 def v1_register():

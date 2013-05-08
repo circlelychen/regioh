@@ -129,6 +129,7 @@ def notify():
     name = None
     email = None
     message = None
+    expires_in_utc = None
     if request.args.get('name',None):
         name = base64.b64decode(request.args['name'])
     if request.args.get('email',None):

@@ -40,7 +40,7 @@ if os.path.isfile(TWILIO_FILE):
 
 TOKEN_LIFE_TIME = 10
 #Dictionary describing response status for REST APIs
-MESSAGE = {'sucess': 'SUCCESS',
+MESSAGE = {'success': 'SUCCESS',
            'no_linkedin_account': 'NO_LINKEDIN_ACCOUNT',
            'code_expired': 'CODE_EXPIRES',
            'active_linkedin_account_exist': 'ACTIVE_LINKEDIN_ACCOUNT_EXIST',

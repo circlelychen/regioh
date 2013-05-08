@@ -32,6 +32,17 @@ def signup():
         #redirect by Linked Authentication Server if user allow
         code = request.args.get('code', None)
         token = get_oauth2_access_token(code)
+        if not token:
+            return redirect(
+                url_for('notify',
+                        status=base64.b64encode('linkedin_error'),
+                        name = base64.b64encode(first_name),
+                        message=base64.b64encode(
+                            'Non primary e-mail from LinkedIn'
+                            )
+                       )
+                )
+            pass
 
         #retrive linkedin _id, and primary e-mail from Linkedin Server
         status, profile = get_linkedin_basic_profile(token.get("access_token"))
@@ -54,12 +65,13 @@ def signup():
             #check account status in REG DynamodDB 
             status, record = query_dynamodb(linked_id)
             if status == u'active':
-                return redirect(url_for('notify',
-                                       name=base64.b64encode(first_name),
-                                       message=base64.b64encode(
-                                           'Already registered')
-                                       )
-                               )
+                return redirect(
+                    url_for('notify',
+                            name=base64.b64encode(first_name),
+                            message=base64.b64encode(
+                                'Already registered')
+                           )
+                    )
             elif status == u'inactive':
                 from default_config import TOKEN_LIFE_TIME
                 utc_now = datetime.datetime.utcnow()
@@ -130,6 +142,7 @@ def notify():
     email = None
     message = None
     expires_in_utc = None
+    status = None
     if request.args.get('name',None):
         name = base64.b64decode(request.args['name'])
     if request.args.get('email',None):
@@ -138,11 +151,14 @@ def notify():
         expires_in_utc = base64.b64decode(request.args['expires_in_utc'])
     if request.args.get('message',None):
         message = base64.b64decode(request.args['message'])
+    if request.args.get('status',None):
+        status = base64.b64decode(request.args['status'])
     return render_template('notify.html',
                            name=name,
                            email=email,
                            expires_in_utc=expires_in_utc,
-                           message=message
+                           message=message,
+                           status = status
                           )
 
 @app.route('/home', methods=['GET'])

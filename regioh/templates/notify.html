@@ -12,7 +12,8 @@
 {%if expires_in_utc %}
     <p class="lead"><i>It is expired in {{expires_in_utc}} (UTC)</i></p>
 {%endif%}
+{%if status == 'linkedin_error'%}
+    <a class="btn btn-large btn-success" href="/signup">OAuth retry</a>
+{%endif%}
 <p class="lead">Yours Securely,<br>-The Cloudioh Team</p>
-<a class="btn btn-large btn-success" href="#">Cipherbox for Windows</a>
-<a class="btn btn-large btn-success" href="#">Cipherbox for Mac OSX</a>
 {% endblock %}

@@ -9,8 +9,9 @@ from .exceptions import abort
 from api_helper import get_oauth2_access_token
 from api_helper import get_oauth2_request_url
 from api_helper import get_linkedin_basic_profile
-from api_helper import addto_dynamodb
-from api_helper import query_dynamodb
+from api_helper import addto_dynamodb_reg
+from api_helper import addto_dynamodb_signup
+from api_helper import query_dynamodb_reg
 from api_helper import update_dynamodb
 from api_helper import generate_security_code
 from api_helper import notify_email
@@ -22,27 +23,26 @@ import datetime
 def signup():
     if request.args.get('error', None):
         #redirect by Linked Authentication Server if user cancel
-        return redirect(url_for('notify',
-                               message=base64.b64encode(
-                                   'Non-Authorized access from LinkedIn')
-                               )
-                       )
-
+        return redirect(
+            url_for('notify',
+                    message=base64.b64encode(
+                        'Non-Authorized access from LinkedIn')
+                   )
+            )
     if request.args.get('code', None) and request.args.get('state', None):
         #redirect by Linked Authentication Server if user allow
         code = request.args.get('code', None)
         token = get_oauth2_access_token(code)
-        if not token:
+        if not token and not token.get("access_token", None):
             return redirect(
                 url_for('notify',
                         status=base64.b64encode('linkedin_error'),
                         name = base64.b64encode(first_name),
                         message=base64.b64encode(
-                            'Non primary e-mail from LinkedIn'
+                            'Linkedin server server for authorization.'
                             )
                        )
                 )
-            pass
 
         #retrive linkedin _id, and primary e-mail from Linkedin Server
         status, profile = get_linkedin_basic_profile(token.get("access_token"))
@@ -62,53 +62,10 @@ def signup():
                                 )
                            )
                     )
-            #check account status in REG DynamodDB 
-            status, record = query_dynamodb(linked_id)
-            if status == u'active':
-                return redirect(
-                    url_for('notify',
-                            name=base64.b64encode(first_name),
-                            message=base64.b64encode(
-                                'Already registered')
-                           )
-                    )
-            elif status == u'inactive':
-                from default_config import TOKEN_LIFE_TIME
-                utc_now = datetime.datetime.utcnow()
-                utc_now_10_min_later = utc_now+datetime.timedelta(
-                    minutes=TOKEN_LIFE_TIME)
-                existing_expires_in_utc = datetime.datetime.strptime(
-                    record.get('expires_in_utc', None),
-                    "%Y-%m-%d %H:%M")
-                if utc_now < existing_expires_in_utc:
-                    # not be expired, extend life time 
-                    record['expires_in_utc']=utc_now_10_min_later.strftime(
-                        "%Y-%m-%d %H:%M")
-                    update_dynamodb(record)
-                    return redirect(
-                        url_for('notify',
-                                name=base64.b64encode(first_name),
-                                email=base64.b64encode(user_email),
-                                expires_in_utc=base64.b64encode(
-                                    record['expires_in_utc']),
-                                message=base64.b64encode(
-                                    'Registration Pending. '
-                                    'Please check your primary '
-                                    'email address:'
-                                    )
-                               )
-                        )
-            elif status == u'invalid':
-                pass
-            else:  # 'empty'
-                pass
-
             # The following part will [add/update] account with new token
             # on REG server and send notification
             security_code = generate_security_code()
-            item = addto_dynamodb(linked_id, token=security_code,
-                           status='inactive'
-                          )
+            item = addto_dynamodb_signup(linked_id, token=security_code)
             expires_in_utc = datetime.datetime.strptime(
                 item.get('expires_in_utc', None),
                 "%Y-%m-%d %H:%M")
@@ -116,22 +73,35 @@ def signup():
             content = "Below please find your one-time security code for Cipherbox setup." 
             footer = "Yours Securely,\n-The Cipherbox Team"
             signature = "Cloudioh Inc.\nwww.cloudioh.com"
-            notify_email(user_email, "\n\n".join([title, content,
-                                                  security_code, footer,
-                                                  signature
-                                                 ]))
-            return redirect(
-                url_for('notify',
-                        name=base64.b64encode(first_name),
-                        email=base64.b64encode(user_email),
-                        expires_in_utc=base64.b64encode(
-                            expires_in_utc.strftime("%Y-%m-%d %H:%S")),
-                        message=base64.b64encode(
-                            'Your one-time security code has been emailed '
-                            'to your LinkedIn primary email address:'
-                            )
-                       )
-                )
+            success = notify_email(user_email, "\n\n".join([title, content,
+                                                            security_code, footer,
+                                                            signature
+                                                           ]))
+            if success:
+                return redirect(
+                    url_for('notify',
+                            name=base64.b64encode(first_name),
+                            email=base64.b64encode(user_email),
+                            expires_in_utc=base64.b64encode(
+                                expires_in_utc.strftime("%Y-%m-%d %H:%S")),
+                            message=base64.b64encode(
+                                'Your one-time security code has been emailed '
+                                'to your LinkedIn primary email address:'
+                                )
+                           )
+                    )
+            else:
+                #send email fail
+                return redirect(
+                    url_for('notify',
+                            name=base64.b64encode(first_name),
+                            email=base64.b64encode(user_email),
+                            message=base64.b64encode(
+                                'SESAddressNotVerifiedError'
+                                )
+                           )
+                    )
+
     #the following part will redirect to oauth2 page for LinkedIn user
     return redirect(get_oauth2_request_url())
 

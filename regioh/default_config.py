@@ -38,10 +38,14 @@ if os.path.isfile(TWILIO_FILE):
         TWILIO_TOKEN = jobj['auth']
         TWILIO_FROM = jobj['from']
 
-TOKEN_LIFE_TIME = 10
+TOKEN_LIFE_TIME =10 
+SIGNUP = 'signup'
+AUTH = 'auth'
 #Dictionary describing response status for REST APIs
 MESSAGE = {'success': 'SUCCESS',
            'no_linkedin_account': 'NO_LINKEDIN_ACCOUNT',
            'code_expired': 'CODE_EXPIRES',
-           'active_linkedin_account_exist': 'ACTIVE_LINKEDIN_ACCOUNT_EXIST',
+           'identical': 'IDENTICAL',
+           'identical_and_exist': 'IDENTICAL_AND_EXIST',
+           'non_identical': 'NON_IDENTICAL',
           }

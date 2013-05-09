@@ -11,6 +11,8 @@ from default_config import LK_CLIENT_SECRET
 from default_config import LK_CLIENT_ID
 from default_config import LK_REDIRECT_URL
 from default_config import TOKEN_LIFE_TIME
+from default_config import SIGNUP
+from default_config import AUTH
 import requests
 import urlparse
 import datetime
@@ -110,7 +112,7 @@ def get_oauth2_request_url():
 
 def verify_linkedin_status(linked_ids):
     from boto.dynamodb.condition import EQ
-    tbl = get_dynamodb_table()
+    tbl = get_dynamodb_table(AUTH)
     actives = tbl.scan(scan_filter = {
         "status": EQ('active')
     })#, attributes_to_get = ['linkedin_id', 'status'])
@@ -128,39 +130,57 @@ def verify_linkedin_status(linked_ids):
             result[active_id] = 'active'
     return result
 
+def get_lk_token_status(linked_id, token):
+    from boto.dynamodb.condition import EQ
+    from default_config import MESSAGE
+
+    #check expire
+    message, item = get_token_status(token)
+    if message == MESSAGE['no_linkedin_account'] or \
+       message == MESSAGE['code_expired']:
+        return message
+
+    # check identity
+    if item['linkedin_id'] == linked_id:
+        status, record = query_dynamodb_reg(linked_id)
+        if not record:
+            return MESSAGE['identical']
+        else:
+            return MESSAGE['identical_and_exist']
+    else:
+        return MESSAGE['non_identical']
+
+
 def get_token_status(token):
     from boto.dynamodb.condition import EQ
     from default_config import MESSAGE
-    tbl = get_dynamodb_table()
+    tbl = get_dynamodb_table(SIGNUP)
     actives = tbl.scan(
         scan_filter = {
             "token": EQ(token)},
-        attributes_to_get = ['status',
+        attributes_to_get = ['linkedin_id',
                              'expires_in_utc']
         )
-    if actives.count == 0:
-        return MESSAGE['no_linkedin_account']
 
     result = {}
+    if actives.count == 0:
+        return MESSAGE['no_linkedin_account'], result
     for active in actives:
-        result = dict(status=active['status'],
+        result = dict(linkedin_id=active['linkedin_id'],
                       expires_in_utc=active['expires_in_utc'])
 
-    if result['status'] == 'active':
-        return MESSAGE['active_linkedin_account_exist']
-    if result['status'] == 'inactive':
-        utc_now = datetime.datetime.utcnow()
-        expires_in_utc = datetime.datetime.strptime(
-            result['expires_in_utc'],
-            "%Y-%m-%d %H:%M")
-        if utc_now > expires_in_utc:
-            return MESSAGE['code_expired']
-        else:
-            return MESSAGE['success']
+    utc_now = datetime.datetime.utcnow()
+    expires_in_utc = datetime.datetime.strptime(
+        result['expires_in_utc'],
+        "%Y-%m-%d %H:%M")
+    if utc_now > expires_in_utc:
+        return MESSAGE['code_expired'], result
+    else:
+        return MESSAGE['success'], result
 
 def get_db_data(linked_ids):
     from boto.dynamodb.condition import EQ
-    tbl = get_dynamodb_table()
+    tbl = get_dynamodb_table(AUTH)
     actives = tbl.scan(scan_filter = {
         "status": EQ('active')
     #})
@@ -198,37 +218,66 @@ def notify_email(email, content):
     if not conn:
         raise Exception
     print "AWS_SES_SENDER: {0}".format(AWS_SES_SENDER)
-    conn.send_email(AWS_SES_SENDER,
-                    'Welcome to Cipherbox',
-                    content,
-                    [email])
+    try: 
+        conn.send_email(AWS_SES_SENDER,
+                        'Welcome to Cipherbox',
+                        content,
+                        [email])
+        return True
+    except SESAddressNotVerifiedError as e:
+        return False
 
-def get_dynamodb_table():
+def get_dynamodb_table(table_name):
     conn = dynamodb.connect_to_region(
         'ap-northeast-1',
         aws_access_key_id=AWS_ACCESS_KEY,
         aws_secret_access_key=AWS_SECRET_ACCESS_KEY)
     tables = conn.list_tables()
-    if 'auth' not in tables:
+    if table_name not in tables:
         auth_table_schema = conn.create_schema(
             hash_key_name='linkedin_id',
             hash_key_proto_value=str,
             )
         table = conn.create_table(
-            name='auth',
+            name=table_name,
             schema=auth_table_schema,
             read_units=1,
             write_units=1
             )
     else:
-        table = conn.get_table('auth')
+        table = conn.get_table(table_name)
     return table
 
-def addto_dynamodb(linked_id, pubkey='N/A', token='N/A',
+def addto_dynamodb_reg(linked_id, pubkey='N/A', token='N/A',
                    pubkey_md5='N/A', perm_id='N/A',
                    email='N/A', status='inactive'):
     """Return status, record"""
-    tbl = get_dynamodb_table()
+    tbl = get_dynamodb_table(AUTH)
+    if tbl.has_item(hash_key=linked_id):
+        item = tbl.get_item(
+            hash_key=linked_id,
+            )
+        item.delete()
+    try:
+        item = tbl.new_item(
+            hash_key=linked_id,
+            attrs={
+                'permid': perm_id,
+                'pubkey': pubkey,
+                'pubkey_md5': pubkey_md5,
+                'email': email,
+                'token': token,
+                'status': status,
+            }
+            )
+    except Exception as e:
+        print e
+    item.put()
+    return item
+
+def addto_dynamodb_signup(linked_id, token='N/A'):
+    """Return status, record"""
+    tbl = get_dynamodb_table(SIGNUP)
     if tbl.has_item(hash_key=linked_id):
         item = tbl.get_item(
             hash_key=linked_id,
@@ -241,12 +290,7 @@ def addto_dynamodb(linked_id, pubkey='N/A', token='N/A',
         item = tbl.new_item(
             hash_key=linked_id,
             attrs={
-                'permid': perm_id,
-                'pubkey': pubkey,
-                'pubkey_md5': pubkey_md5,
-                'email': email,
                 'token': token,
-                'status': status,
                 'created_in_utc': utc_now.strftime("%Y-%m-%d %H:%M"),
                 'expires_in_utc': utc_now_10_min_later.strftime("%Y-%m-%d %H:%M")
             }
@@ -256,9 +300,9 @@ def addto_dynamodb(linked_id, pubkey='N/A', token='N/A',
     item.put()
     return item
 
-def query_dynamodb(linked_id, pubkey=None, email=None, token=None):
+def query_dynamodb_reg(linked_id, pubkey=None, email=None, token=None):
     """Return status, record"""
-    tbl = get_dynamodb_table()
+    tbl = get_dynamodb_table(AUTH)
     if not tbl.has_item(hash_key=linked_id):
         return 'invalid', {}
     item = tbl.get_item(
@@ -271,6 +315,16 @@ def query_dynamodb(linked_id, pubkey=None, email=None, token=None):
     if token and item['token'] != token:
         return 'invalid', {}
     return item['status'], item
+
+def query_dynamodb_signup(linked_id):
+    """Return status, record"""
+    tbl = get_dynamodb_table(SIGNUP)
+    if not tbl.has_item(hash_key=linked_id):
+        return 'invalid', {}
+    item = tbl.get_item(
+        hash_key=linked_id
+        )
+    return item
 
 def update_dynamodb(item):
     item.put()

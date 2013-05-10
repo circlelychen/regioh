@@ -69,7 +69,7 @@ def signup():
             expires_in_utc = datetime.datetime.strptime(
                 item.get('expires_in_utc', None),
                 "%Y-%m-%d %H:%M")
-            title = "Hi {0} {1}".format(first_name, last_name)
+            title = "Hi {0} {1},".format(first_name, last_name)
             content = "Below please find your one-time security code for Cipherbox setup." 
             footer = "Yours Securely,\n-The Cipherbox Team"
             signature = "Cloudioh Inc.\nwww.cloudioh.com"

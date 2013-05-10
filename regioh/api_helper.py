@@ -16,6 +16,7 @@ from default_config import AUTH
 import requests
 import urlparse
 import datetime
+from requests_oauthlib import OAuth1
 
 LINKEDIN_API_URL = 'https://api.linkedin.com/'
 GOOGLE_DOWNLOAD_URL = 'https://docs.google.com/uc'
@@ -109,6 +110,7 @@ def get_oauth2_request_url():
     params.append("state={0}".format(state))
     params.append("redirect_uri={0}".format(redirect_url))
     return "{0}?{1}".format(authorize_url, "&".join(params))
+
 
 def verify_linkedin_status(linked_ids):
     from boto.dynamodb.condition import EQ

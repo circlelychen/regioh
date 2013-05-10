@@ -15,6 +15,7 @@ from api_helper import query_dynamodb_reg
 from api_helper import update_dynamodb
 from api_helper import generate_security_code
 from api_helper import notify_email
+from api_helper import get_oauth1_request_url
 import json
 import base64
 import datetime
@@ -102,8 +103,10 @@ def signup():
                            )
                     )
 
-    #the following part will redirect to oauth2 page for LinkedIn user
-    return redirect(get_oauth2_request_url())
+    # Oauth1
+    return redirect(get_oauth1_request_url())
+    # Oauth2
+    #return redirect(get_oauth2_request_url())
 
 
 @app.route('/notify', methods=['GET'])

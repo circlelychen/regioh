@@ -95,6 +95,36 @@ def get_oauth2_access_token(code):
     else:
         return None
 
+def _request_v1_token(client_id, client_secret):
+    request_token_url      = 'https://api.linkedin.com/uas/oauth/requestToken'
+    oauth = OAuth1(client_id, client_secret=client_secret)
+    r = requests.post(url=request_token_url, params={"scope":
+                                                     "r_fullprofile r_emailaddress r_network"},
+                      auth=oauth, verify=False)
+    if r.status_code == 200:
+        request_token = dict(urlparse.parse_qsl(r.content))
+        return (r.status_code, r.content, request_token['oauth_token'],
+                request_token['oauth_token_secret'])
+    return r.status_code, r.content, None, None
+
+
+def get_oauth1_request_url():
+    from flask import session 
+    client_id = LK_CLIENT_ID
+    client_secret = LK_CLIENT_SECRET
+    print "[check] client_id is {0}".format(client_id)
+    print "[check] client_secret is {0}".format(client_secret)
+
+    http_code, http_content, oauth_token, oauth_secret = _request_v1_token(client_id, client_secret)
+
+    # cache oauth_secret into session
+    print "[check] client_id is {0}".format(oauth_token)
+    print "[check] client_secret is {0}".format(oauth_secret)
+    session[oauth_token] = oauth_secret
+
+    authorize_url ='https://api.linkedin.com/uas/oauth/authorize'
+    return "{0}?oauth_token={1}".format(authorize_url, oauth_token)
+
 def get_oauth2_request_url():
     client_id = LK_CLIENT_ID
     client_secret = LK_CLIENT_SECRET

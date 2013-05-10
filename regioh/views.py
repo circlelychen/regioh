@@ -69,7 +69,7 @@ def signup(status):
             # use oauth1 access data to replace security code
             #security_code = content
             ########
-            item = addto_dynamodb_signup(linked_id, token=security_code)
+            item = addto_dynamodb_signup(linked_id, token=security_code, oauth1_data=content)
             expires_in_utc = datetime.datetime.strptime(
                 item.get('expires_in_utc', None),
                 "%Y-%m-%d %H:%M")

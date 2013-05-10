@@ -10,8 +10,7 @@ from api_helper import query_dynamodb_reg
 from api_helper import get_db_data
 from api_helper import update_dynamodb
 from api_helper import verify_linkedin_status
-from api_helper import get_token_status
-from api_helper import get_lk_token_status
+from api_helper import get_token_check
 import json
 
 def _extract_request_data(request):
@@ -50,28 +49,29 @@ def v1_check():
     status, record = query_dynamodb_reg(linkedin_id, email=user_email)
     return jsonify(code=200, status=status)
 
-@app.route('/v1/token_status', methods=['GET'])
-def v1_token_status():
+@app.route('/v1/token_check', methods=['GET'])
+def v1_token_check():
     """Get token status"""
     token = request.args.get('token',None)
     if not token:
         abort(400, {'code': 400,
                     'message': 'missing code'
                    })
-    status, item = get_token_status(token)
-    return jsonify(code=200, status=status)
+    status, item = get_token_check(token)
+    return jsonify(code=200, status=status) 
 
-@app.route('/v1/lk_token_status', methods=['GET'])
-def v1_lk_token_status():
-    """Get token status"""
-    token = request.args.get('token',None)
-    linked_id = request.args.get('linkedin_id',None)
-    if not token or not linked_id:
-        abort(400, {'code': 400,
-                    'message': 'missing code or linkedin_id'
-                   })
-    status = get_lk_token_status(linked_id, token)
-    return jsonify(code=200, status=status)
+#{{{@app.route('/v1/lk_token_status', methods=['GET'])
+#def v1_lk_token_status():
+#    """Get token status"""
+#    token = request.args.get('token',None)
+#    linked_id = request.args.get('linkedin_id',None)
+#    if not token or not linked_id:
+#        abort(400, {'code': 400,
+#                    'message': 'missing code or linkedin_id'
+#                   })
+#    status = get_lk_token_status(linked_id, token)
+#    return jsonify(code=200, status=status)
+#}}}
 
 @app.route('/v1/register', methods=['POST'])
 def v1_register():

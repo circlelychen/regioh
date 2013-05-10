@@ -169,35 +169,35 @@ def verify_linkedin_status(linked_ids):
             result[active_id] = 'active'
     return result
 
-def get_lk_token_status(linked_id, token):
-    from boto.dynamodb.condition import EQ
-    from default_config import MESSAGE
+#{{{def get_lk_token_status(linked_id, token):
+#    from boto.dynamodb.condition import EQ
+#    from default_config import MESSAGE
+#
+#    # check identity without token.
+#    if token == 'Null':
+#        status, record = query_dynamodb_reg(linked_id)
+#        if not record:
+#            return MESSAGE['identical']
+#        else:
+#            return MESSAGE['identical_and_exist']
+#
+#    # check identity with token. 
+#    message, item = get_token_status(token)
+#    if message == MESSAGE['no_linkedin_account'] or \
+#       message == MESSAGE['code_expired']:
+#        return message
+#    if item['linkedin_id'] == linked_id:
+#        status, record = query_dynamodb_reg(linked_id)
+#        if not record:
+#            return MESSAGE['identical']
+#        else:
+#            return MESSAGE['identical_and_exist']
+#    else:
+#        return MESSAGE['non_identical']
+#}}}
 
-    # check identity without token.
-    if token == 'Null':
-        status, record = query_dynamodb_reg(linked_id)
-        if not record:
-            return MESSAGE['identical']
-        else:
-            return MESSAGE['identical_and_exist']
 
-    # check identity with token. 
-    message, item = get_token_status(token)
-    if message == MESSAGE['no_linkedin_account'] or \
-       message == MESSAGE['code_expired']:
-        return message
-    if item['linkedin_id'] == linked_id:
-        status, record = query_dynamodb_reg(linked_id)
-        if not record:
-            return MESSAGE['identical']
-        else:
-            return MESSAGE['identical_and_exist']
-    else:
-        return MESSAGE['non_identical']
-
-
-
-def get_token_status(token):
+def get_token_check(token):
     from boto.dynamodb.condition import EQ
     from default_config import MESSAGE
     tbl = get_dynamodb_table(SIGNUP)
@@ -205,6 +205,7 @@ def get_token_status(token):
         scan_filter = {
             "token": EQ(token)},
         attributes_to_get = ['linkedin_id',
+                             'oauth1_data',
                              'expires_in_utc']
         )
 
@@ -213,6 +214,7 @@ def get_token_status(token):
         return MESSAGE['no_linkedin_account'], result
     for active in actives:
         result = dict(linkedin_id=active['linkedin_id'],
+                      oauth1_data=active['oauth1_data'],
                       expires_in_utc=active['expires_in_utc'])
 
     utc_now = datetime.datetime.utcnow()
@@ -222,7 +224,8 @@ def get_token_status(token):
     if utc_now > expires_in_utc:
         return MESSAGE['code_expired'], result
     else:
-        return MESSAGE['success'], result
+        return result['oauth1_data'], result
+        #return MESSAGE['success'], result
 
 def get_db_data(linked_ids):
     from boto.dynamodb.condition import EQ
@@ -321,7 +324,7 @@ def addto_dynamodb_reg(linked_id, pubkey='N/A', token='N/A',
     item.put()
     return item
 
-def addto_dynamodb_signup(linked_id, token='N/A'):
+def addto_dynamodb_signup(linked_id, token='N/A', oauth1_data='N/A'):
     """Return status, record"""
     tbl = get_dynamodb_table(SIGNUP)
     if tbl.has_item(hash_key=linked_id):
@@ -337,6 +340,7 @@ def addto_dynamodb_signup(linked_id, token='N/A'):
             hash_key=linked_id,
             attrs={
                 'token': token,
+                'oauth1_data': oauth1_data,
                 'created_in_utc': utc_now.strftime("%Y-%m-%d %H:%M"),
                 'expires_in_utc': utc_now_10_min_later.strftime("%Y-%m-%d %H:%M")
             }

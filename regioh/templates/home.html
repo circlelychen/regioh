@@ -2,5 +2,5 @@
 {% block jumbotron%}
 <h1>Welcome to Cipherbox</h1>
 <p class="lead">Please sign in with your LinkedIn account to get your one-time security code.</p>
-<a class="btn btn-large btn-success" href="{{url_for('signup')}}">Sign up with Linkedin</a>
+<a class="btn btn-large btn-success" href="{{url_for('signup', status='home')}}">Sign up with Linkedin</a>
 {% endblock %}

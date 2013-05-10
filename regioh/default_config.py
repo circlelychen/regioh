@@ -38,7 +38,7 @@ if os.path.isfile(TWILIO_FILE):
         TWILIO_TOKEN = jobj['auth']
         TWILIO_FROM = jobj['from']
 
-TOKEN_LIFE_TIME =10 
+TOKEN_LIFE_TIME = 30 
 SIGNUP = 'signup'
 AUTH = 'auth'
 #Dictionary describing response status for REST APIs

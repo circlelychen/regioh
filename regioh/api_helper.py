@@ -21,79 +21,86 @@ from requests_oauthlib import OAuth1
 LINKEDIN_API_URL = 'https://api.linkedin.com/'
 GOOGLE_DOWNLOAD_URL = 'https://docs.google.com/uc'
 
-def _linkedin_request(url, linked_token):
+def _linkedin_request(url, access_token, access_secret):
     #use linkedin API with Oauth 1.0 token
-    resp = requests.get(url=url,
+    client_id = LK_CLIENT_ID
+    client_secret = LK_CLIENT_SECRET
+    url = urlparse.urljoin(LINKEDIN_API_URL,
+                           'v1/people/~:(id,first-name,last-name,email-address)')
+    oauth = OAuth1(client_id, client_secret=client_secret,
+                   resource_owner_key=access_token,
+                   resource_owner_secret=access_secret)
+
+    resp = requests.get(url,
                         params={
-                            "oauth2_access_token": linked_token,
-                            "format": "json"
+                            'format': 'json'
                         },
-                        verify=False)
+                        auth=oauth
+                       )
     if resp.status_code == 200:
         return resp.status_code, resp.json()
     return resp.status_code, {'reason': 'unknown error', 'raw': resp.content}
+    #{{{ resp = requests.get(url=url,
+    #                    params={
+    #                        "oauth2_access_token": linked_token,
+    #                        "format": "json"
+    #                    },
+    #                    verify=False)
+    #}}}
 
-def get_linkedin_basic_profile(linked_token):
+def get_linkedin_basic_profile(access_token, access_secret):
     url = urlparse.urljoin(
         LINKEDIN_API_URL,
         'v1/people/~:(id,first-name,last-name,email-address)')
-    return _linkedin_request(url, linked_token.strip())
+    return _linkedin_request(url, access_token, access_secret)
 
-def retrieve_linkedin_id_and_name(linked_token):
-    import requests
-    import urlparse
-    from requests_oauthlib import OAuth1
-    url = urlparse.urljoin(LINKEDIN_API_URL,
-                           '/v1/people/~:(id,first-name,last-name)')
-    oauth = OAuth1(linked_token['client_id'],
-                   client_secret=linked_token['client_secret'],
-                   resource_owner_key=linked_token['oauth_token'],
-                   resource_owner_secret=linked_token['oauth_secret'])
+#{{{def get_oauth2_access_token(code):
+#    client_id = LK_CLIENT_ID
+#    client_secret = LK_CLIENT_SECRET
+#    redirect_url = LK_REDIRECT_URL 
+#    access_token_url = 'https://www.linkedin.com/uas/oauth2/accessToken'
+#    params = {"client_id": client_id, "client_secret": client_secret,
+#              "code": code, "grant_type": "authorization_code",
+#              "redirect_uri":redirect_url}
+#    resp = requests.request('POST', access_token_url, params=params)
+#    if resp.status_code == 200:
+#        return resp.json()
+#    else:
+#        return None
+#}}}
 
-    resp = requests.get(url,
-                        params={
-                            'format': 'json'
-                        },
-                        auth=oauth
-                       )
-    if resp.status_code == 200:
-        return resp.json()['id'], resp.json()['firstName'], resp.json()['lastName']
-    return None, None, None
+def _access_v1_token(client_id, client_secret, oauth_token, oauth_secret, pin_code):
+    access_token_url = 'https://api.linkedin.com/uas/oauth/accessToken'
+    oauth = OAuth1(client_id,
+                   client_secret=client_secret,
+                   resource_owner_key=oauth_token,
+                   resource_owner_secret=oauth_secret,
+                   verifier=pin_code)
+    r = requests.post(url=access_token_url, auth=oauth, verify=False)
+    if r.status_code == 200:
+        request_token = dict(urlparse.parse_qsl(r.content))
+        return (r.status_code, r.content, request_token['oauth_token'],
+                request_token['oauth_token_secret'])
+    return r.status_code, r.content, None, None
 
-def retrieve_linkedin_id(linked_token):
-    import requests
-    import urlparse
-    from requests_oauthlib import OAuth1
-    url = urlparse.urljoin(LINKEDIN_API_URL,
-                           '/v1/people/~:(id)')
-    oauth = OAuth1(linked_token['client_id'],
-                   client_secret=linked_token['client_secret'],
-                   resource_owner_key=linked_token['oauth_token'],
-                   resource_owner_secret=linked_token['oauth_secret'])
-
-    resp = requests.get(url,
-                        params={
-                            'format': 'json'
-                        },
-                        auth=oauth
-                       )
-    if resp.status_code == 200:
-        return resp.json()['id']
-    return None
-
-def get_oauth2_access_token(code):
+def get_oauth1_access_token(oauth_token, oauth_verifier):
+    from flask import session 
     client_id = LK_CLIENT_ID
     client_secret = LK_CLIENT_SECRET
-    redirect_url = LK_REDIRECT_URL 
-    access_token_url = 'https://www.linkedin.com/uas/oauth2/accessToken'
-    params = {"client_id": client_id, "client_secret": client_secret,
-              "code": code, "grant_type": "authorization_code",
-              "redirect_uri":redirect_url}
-    resp = requests.request('POST', access_token_url, params=params)
-    if resp.status_code == 200:
-        return resp.json()
-    else:
-        return None
+    oauth_secret = session[oauth_token]
+
+    print "[check] client_id is {0}".format(client_id)
+    print "[check] client_secret is {0}".format(client_secret)
+    print "[check] oauth_token is {0}".format(oauth_token)
+    print "[check] oauth_secret is {0}".format(oauth_secret)
+    print "[check] oauth_verifier is {0}".format(oauth_verifier)
+
+    http_code, http_content, access_token, access_secret = _access_v1_token(client_id,
+                                                client_secret,
+                                                oauth_token,
+                                                oauth_secret,
+                                                oauth_verifier)
+    return http_content, access_token, access_secret 
 
 def _request_v1_token(client_id, client_secret):
     request_token_url      = 'https://api.linkedin.com/uas/oauth/requestToken'
@@ -125,22 +132,22 @@ def get_oauth1_request_url():
     authorize_url ='https://api.linkedin.com/uas/oauth/authorize'
     return "{0}?oauth_token={1}".format(authorize_url, oauth_token)
 
-def get_oauth2_request_url():
-    client_id = LK_CLIENT_ID
-    client_secret = LK_CLIENT_SECRET
-    redirect_url = LK_REDIRECT_URL 
-    authorize_url = 'https://www.linkedin.com/uas/oauth2/authorization'
-    scope = "r_basicprofile%20r_emailaddress"
-    state = "DCEEFWF45453sdffef424"
-
-    params = []
-    params.append("response_type={0}".format("code"))
-    params.append("client_id={0}".format(client_id))
-    params.append("scope={0}".format(scope))
-    params.append("state={0}".format(state))
-    params.append("redirect_uri={0}".format(redirect_url))
-    return "{0}?{1}".format(authorize_url, "&".join(params))
-
+#{{{def get_oauth2_request_url():
+#    client_id = LK_CLIENT_ID
+#    client_secret = LK_CLIENT_SECRET
+#    redirect_url = LK_REDIRECT_URL 
+#    authorize_url = 'https://www.linkedin.com/uas/oauth2/authorization'
+#    scope = "r_basicprofile%20r_emailaddress"
+#    state = "DCEEFWF45453sdffef424"
+#
+#    params = []
+#    params.append("response_type={0}".format("code"))
+#    params.append("client_id={0}".format(client_id))
+#    params.append("scope={0}".format(scope))
+#    params.append("state={0}".format(state))
+#    params.append("redirect_uri={0}".format(redirect_url))
+#    return "{0}?{1}".format(authorize_url, "&".join(params))
+#}}}
 
 def verify_linkedin_status(linked_ids):
     from boto.dynamodb.condition import EQ
@@ -263,7 +270,7 @@ def notify_email(email, content):
                         content,
                         [email])
         return True
-    except SESAddressNotVerifiedError as e:
+    except Exception as e:
         return False
 
 def get_dynamodb_table(table_name):

@@ -8,8 +8,6 @@ from .exceptions import abort
 from api_helper import fetch_public_key
 from api_helper import query_dynamodb_reg
 from api_helper import get_db_data
-from api_helper import retrieve_linkedin_id
-from api_helper import retrieve_linkedin_id_and_name
 from api_helper import update_dynamodb
 from api_helper import verify_linkedin_status
 from api_helper import get_token_status
@@ -28,7 +26,7 @@ def _extract_request_data(request):
         security_code = request.form.get('security_code', None)
     else:
         try:
-            jreq = json.loads(request.data)
+            jreq = json(request.data)
         except:
             abort(400, {'message': 'incorrect POST data: {0}'.format(request.data)})
         user_email = jreq.get('email', None)

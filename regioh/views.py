@@ -6,35 +6,33 @@ import os
 from regioh import app
 from flask import Flask, request, jsonify, redirect, url_for, render_template
 from .exceptions import abort
-from api_helper import get_oauth2_access_token
-from api_helper import get_oauth2_request_url
 from api_helper import get_linkedin_basic_profile
-from api_helper import addto_dynamodb_reg
 from api_helper import addto_dynamodb_signup
-from api_helper import query_dynamodb_reg
-from api_helper import update_dynamodb
 from api_helper import generate_security_code
 from api_helper import notify_email
 from api_helper import get_oauth1_request_url
+from api_helper import get_oauth1_access_token
 import json
 import base64
 import datetime
 
-@app.route('/signup', methods=['GET'])
-def signup():
-    if request.args.get('error', None):
-        #redirect by Linked Authentication Server if user cancel
+@app.route('/signup/<status>', methods=['GET'])
+def signup(status):
+    if status == 'cancel':
         return redirect(
             url_for('notify',
+                    status=base64.b64encode('cancel'),
                     message=base64.b64encode(
                         'Non-Authorized access from LinkedIn')
                    )
             )
-    if request.args.get('code', None) and request.args.get('state', None):
-        #redirect by Linked Authentication Server if user allow
-        code = request.args.get('code', None)
-        token = get_oauth2_access_token(code)
-        if not token and not token.get("access_token", None):
+    if status == 'success':
+        #Oauth1
+        oauth_token = request.args.get('oauth_token', None)
+        oauth_verifier = request.args.get('oauth_verifier', None)
+        content, access_token, access_secret = get_oauth1_access_token(oauth_token,
+                                                                   oauth_verifier)
+        if not access_token or not access_secret:
             return redirect(
                 url_for('notify',
                         status=base64.b64encode('linkedin_error'),
@@ -45,8 +43,7 @@ def signup():
                        )
                 )
 
-        #retrive linkedin _id, and primary e-mail from Linkedin Server
-        status, profile = get_linkedin_basic_profile(token.get("access_token"))
+        status, profile = get_linkedin_basic_profile(access_token, access_secret)
         if status == 200 and profile :
             user_email = profile.get("emailAddress", None)
             first_name = profile.get("firstName", None)
@@ -58,6 +55,7 @@ def signup():
                 return redirect(
                     url_for('notify',
                             name = base64.b64encode(first_name),
+                            status=base64.b64encode('cancel'),
                             message=base64.b64encode(
                                 'Non primary e-mail from LinkedIn'
                                 )
@@ -65,7 +63,12 @@ def signup():
                     )
             # The following part will [add/update] account with new token
             # on REG server and send notification
+            ########
             security_code = generate_security_code()
+            ########
+            # use oauth1 access data to replace security code
+            #security_code = content
+            ########
             item = addto_dynamodb_signup(linked_id, token=security_code)
             expires_in_utc = datetime.datetime.strptime(
                 item.get('expires_in_utc', None),
@@ -75,7 +78,9 @@ def signup():
             footer = "Yours Securely,\n-The Cipherbox Team"
             signature = "Cloudioh Inc.\nwww.cloudioh.com"
             success = notify_email(user_email, "\n\n".join([title, content,
-                                                            security_code, footer,
+                                                            #base64.b64encode(security_code),
+                                                            security_code,
+                                                            footer,
                                                             signature
                                                            ]))
             if success:
@@ -83,6 +88,7 @@ def signup():
                     url_for('notify',
                             name=base64.b64encode(first_name),
                             email=base64.b64encode(user_email),
+                            status=base64.b64encode('success'),
                             expires_in_utc=base64.b64encode(
                                 expires_in_utc.strftime("%Y-%m-%d %H:%S")),
                             message=base64.b64encode(
@@ -97,6 +103,7 @@ def signup():
                     url_for('notify',
                             name=base64.b64encode(first_name),
                             email=base64.b64encode(user_email),
+                            status='cancel',
                             message=base64.b64encode(
                                 'SESAddressNotVerifiedError'
                                 )
@@ -105,8 +112,6 @@ def signup():
 
     # Oauth1
     return redirect(get_oauth1_request_url())
-    # Oauth2
-    #return redirect(get_oauth2_request_url())
 
 
 @app.route('/notify', methods=['GET'])

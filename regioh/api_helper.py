@@ -134,13 +134,19 @@ def get_lk_token_status(linked_id, token):
     from boto.dynamodb.condition import EQ
     from default_config import MESSAGE
 
-    #check expire
+    # check identity without token.
+    if token == 'Null':
+        status, record = query_dynamodb_reg(linked_id)
+        if not record:
+            return MESSAGE['identical']
+        else:
+            return MESSAGE['identical_and_exist']
+
+    # check identity with token. 
     message, item = get_token_status(token)
     if message == MESSAGE['no_linkedin_account'] or \
        message == MESSAGE['code_expired']:
         return message
-
-    # check identity
     if item['linkedin_id'] == linked_id:
         status, record = query_dynamodb_reg(linked_id)
         if not record:
@@ -149,6 +155,7 @@ def get_lk_token_status(linked_id, token):
             return MESSAGE['identical_and_exist']
     else:
         return MESSAGE['non_identical']
+
 
 
 def get_token_status(token):

@@ -209,23 +209,35 @@ def get_token_check(token):
                              'expires_in_utc']
         )
 
-    result = {}
+    result = {"status": "",
+              "token": "",
+              "reg_data": ""}
     if actives.count == 0:
-        return MESSAGE['no_linkedin_account'], result
-    for active in actives:
-        result = dict(linkedin_id=active['linkedin_id'],
-                      oauth1_data=active['oauth1_data'],
-                      expires_in_utc=active['expires_in_utc'])
+        # security code does not match any record
+        result['status'] = MESSAGE['no_linkedin_account']
+        return result
 
-    utc_now = datetime.datetime.utcnow()
-    expires_in_utc = datetime.datetime.strptime(
-        result['expires_in_utc'],
-        "%Y-%m-%d %H:%M")
-    if utc_now > expires_in_utc:
-        return MESSAGE['code_expired'], result
-    else:
-        return result['oauth1_data'], result
-        #return MESSAGE['success'], result
+    for active in actives:
+        utc_now = datetime.datetime.utcnow()
+        expires_in_utc = datetime.datetime.strptime(
+            active['expires_in_utc'],
+            "%Y-%m-%d %H:%M")
+        if utc_now > expires_in_utc:
+            # security code expire
+            result['status'] = MESSAGE['code_expired']
+            return result
+
+        # security code match and not expire,
+        result['status'] = MESSAGE['success']
+        result['token'] = active['oauth1_data']
+        status, record = query_dynamodb_reg(active['linkedin_id'])
+        if record:
+            result['reg_data'] = {"gmail": record['email']}
+        return result
+
+    #should not process the following part
+    result['status'] = MESSAGE['no_linkedin_account']
+    return result
 
 def get_db_data(linked_ids):
     from boto.dynamodb.condition import EQ

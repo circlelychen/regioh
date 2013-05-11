@@ -111,7 +111,10 @@ def signup(status):
                     )
 
     # Oauth1
-    return redirect(get_oauth1_request_url())
+    if status == 'start':
+        return redirect(get_oauth1_request_url())
+    else:
+        return redirect(url_for('home'))
 
 
 @app.route('/notify', methods=['GET'])

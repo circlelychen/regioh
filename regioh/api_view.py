@@ -25,7 +25,7 @@ def _extract_request_data(request):
         security_code = request.form.get('security_code', None)
     else:
         try:
-            jreq = json(request.data)
+            jreq = json.loads(request.data)
         except:
             abort(400, {'message': 'incorrect POST data: {0}'.format(request.data)})
         user_email = jreq.get('email', None)
@@ -57,8 +57,9 @@ def v1_token_check():
         abort(400, {'code': 400,
                     'message': 'missing code'
                    })
-    status, item = get_token_check(token)
-    return jsonify(code=200, status=status) 
+    print token
+    item = get_token_check(token)
+    return jsonify(code=200, status=item) 
 
 #{{{@app.route('/v1/lk_token_status', methods=['GET'])
 #def v1_lk_token_status():
@@ -79,9 +80,8 @@ def v1_register():
     from api_helper import addto_dynamodb_reg
     user_email, pubkey_id, linked_token, _, key_md5, perm_id, linkedin_id, token = _extract_request_data(request)
 
-    status = get_lk_token_status(linkedin_id, token)
-    if status == MESSAGE['identical_and_exist'] or \
-       status == MESSAGE['identical']:
+    item = get_token_check(token)
+    if item['status'] == MESSAGE['success']:
         addto_dynamodb_reg(linkedin_id, pubkey=pubkey_id,
                            token=token,pubkey_md5=key_md5,
                            perm_id=perm_id, email=user_email,
@@ -89,7 +89,7 @@ def v1_register():
                           )
         return jsonify(code=200, status='active')
     else:
-        return jsonify(code=200, status=status)
+        return jsonify(code=200, status=item)
 
 @app.route('/v1/linkedin', methods=['POST'])
 def v1_linkedin():

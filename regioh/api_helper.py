@@ -88,6 +88,7 @@ def get_oauth1_access_token(oauth_token, oauth_verifier):
     client_id = LK_CLIENT_ID
     client_secret = LK_CLIENT_SECRET
     oauth_secret = session[oauth_token]
+    session.pop(oauth_token, None)
 
     print "[check] client_id is {0}".format(client_id)
     print "[check] client_secret is {0}".format(client_secret)

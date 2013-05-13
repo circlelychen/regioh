@@ -22,7 +22,7 @@ def _extract_request_data(request):
         linked_data = request.form.get('linkedin_data', None)
         token = request.form.get('token', None)
         linkedin_id = request.form.get('linkedin_id', None)
-        security_code = request.form.get('security_code', None)
+        security_code = request.form.get('identity_code', None)
     else:
         try:
             jreq = json.loads(request.data)
@@ -35,7 +35,7 @@ def _extract_request_data(request):
         linked_data = jreq.get('linkedin_data', {})
         token = jreq.get('token', None)
         linkedin_id = jreq.get('linkedin_id', None)
-        security_code = jreq.get('security_code', None)
+        security_code = jreq.get('identity_code', None)
     return user_email, pub_key, linked_data, token, pub_key_md5, permid, linkedin_id, security_code
 
 @app.route('/v1/check', methods=['POST'])
@@ -49,16 +49,15 @@ def v1_check():
     status, record = query_dynamodb_reg(linkedin_id, email=user_email)
     return jsonify(code=200, status=status)
 
-@app.route('/v1/token_check', methods=['GET'])
-def v1_token_check():
-    """Get token status"""
-    token = request.args.get('token',None)
+@app.route('/v1/fetch_token', methods=['GET'])
+def v1_fetch_token():
+    """return linkedin access token if token valid"""
+    identity_code = request.args.get('identity_code',None)
     if not token:
         abort(400, {'code': 400,
                     'message': 'missing code'
                    })
-    print token
-    item = get_token_check(token)
+    item = get_token_check(identity_code)
     return jsonify(code=200, status=item) 
 
 #{{{@app.route('/v1/lk_token_status', methods=['GET'])

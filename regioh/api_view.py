@@ -53,7 +53,7 @@ def v1_check():
 def v1_fetch_token():
     """return linkedin access token if token valid"""
     identity_code = request.args.get('identity_code',None)
-    if not token:
+    if not identity_code:
         abort(400, {'code': 400,
                     'message': 'missing code'
                    })

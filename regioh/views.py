@@ -36,7 +36,7 @@ def signup(status):
             return redirect(
                 url_for('notify',
                         status=base64.b64encode('linkedin_error'),
-                        name = base64.b64encode(first_name),
+                        name=base64.b64encode(first_name.encode('utf-8')),
                         message=base64.b64encode(
                             'Linkedin server server for authorization.'
                             )
@@ -54,7 +54,7 @@ def signup(status):
             if not user_email:
                 return redirect(
                     url_for('notify',
-                            name = base64.b64encode(first_name),
+                            name=base64.b64encode(first_name.encode('utf-8')),
                             status=base64.b64encode('cancel'),
                             message=base64.b64encode(
                                 'Non primary e-mail from LinkedIn'
@@ -73,7 +73,8 @@ def signup(status):
             expires_in_utc = datetime.datetime.strptime(
                 item.get('expires_in_utc', None),
                 "%Y-%m-%d %H:%M")
-            title = "Hi {0} {1},".format(first_name, last_name)
+            title = u"Hi {0} {1},".format(first_name, last_name)
+            print title
             content = "Below please find your one-time security code for Cipherbox setup." 
             footer = "Yours Securely,\n-The Cipherbox Team"
             signature = "Cloudioh Inc.\nwww.cloudioh.com"
@@ -86,7 +87,7 @@ def signup(status):
             if success:
                 return redirect(
                     url_for('notify',
-                            name=base64.b64encode(first_name),
+                            name=base64.b64encode(first_name.encode('utf-8')),
                             email=base64.b64encode(user_email),
                             status=base64.b64encode('success'),
                             expires_in_utc=base64.b64encode(
@@ -101,7 +102,7 @@ def signup(status):
                 #send email fail
                 return redirect(
                     url_for('notify',
-                            name=base64.b64encode(first_name),
+                            name=base64.b64encode(first_name.encode('utf-8')),
                             email=base64.b64encode(user_email),
                             status='cancel',
                             message=base64.b64encode(
@@ -125,7 +126,8 @@ def notify():
     expires_in_utc = None
     status = None
     if request.args.get('name',None):
-        name = base64.b64decode(request.args['name'])
+        name = base64.b64decode(request.args['name']).decode('utf-8')
+        #name = request.args['name']
     if request.args.get('email',None):
         email = base64.b64decode(request.args['email'])
     if request.args.get('expires_in_utc',None):

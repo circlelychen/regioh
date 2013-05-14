@@ -27,6 +27,20 @@ if os.path.isfile(LK_AUTH_FILE):
         LK_CLIENT_SECRET = jobj['client_secret']
         LK_REDIRECT_URL = jobj['redirect_url']
 
+GD_AUTH_FILE = os.path.join(os.path.dirname(PROJECT_ROOT), '.gd_auth')
+if os.path.isfile(GD_AUTH_FILE):
+    with open(GD_AUTH_FILE, 'rb') as fin:
+        jobj = json.load(fin)
+        GD_CLIENT_ID = jobj['client_id']
+        GD_CLIENT_SECRET = jobj['client_secret']
+        GD_REDIRECT_URL = jobj['redirect_url']
+        GD_LOGIN_HINT = jobj['login_hint']
+
+########################################
+# credential for google dirve
+#######################################
+GD_CRED_FILE = os.path.join(os.path.dirname(PROJECT_ROOT), '.cred.json')
+
 TWILIO_SID = None
 TWILIO_TOKEN = None
 TWILIO_FROM = None
@@ -38,7 +52,7 @@ if os.path.isfile(TWILIO_FILE):
         TWILIO_TOKEN = jobj['auth']
         TWILIO_FROM = jobj['from']
 
-TOKEN_LIFE_TIME = 30 
+TOKEN_LIFE_TIME = 30
 SIGNUP = 'signup'
 AUTH = 'auth'
 #Dictionary describing response status for REST APIs

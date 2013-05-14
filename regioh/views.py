@@ -30,7 +30,7 @@ def signup(status):
         #Oauth1
         oauth_token = request.args.get('oauth_token', None)
         oauth_verifier = request.args.get('oauth_verifier', None)
-        content, access_token, access_secret = get_oauth1_access_token(oauth_token,
+        content, access_token, access_secret, expires_in = get_oauth1_access_token(oauth_token,
                                                                    oauth_verifier)
         if not access_token or not access_secret:
             return redirect(
@@ -69,7 +69,11 @@ def signup(status):
             # use oauth1 access data to replace security code
             #security_code = content
             ########
-            item = addto_dynamodb_signup(linked_id, token=security_code, oauth1_data=content)
+            item = addto_dynamodb_signup(linked_id, token=security_code,
+                                         oauth1_data=content,
+                                         oauth_token=access_token,
+                                         oauth_token_secret=access_secret,
+                                         oauth_expires_in=expires_in)
             expires_in_utc = datetime.datetime.strptime(
                 item.get('expires_in_utc', None),
                 "%Y-%m-%d %H:%M")

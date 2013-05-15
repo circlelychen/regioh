@@ -89,7 +89,8 @@ def v2_register():
         linkedin_id = item['linkedin_id']
         register_email(linkedin_id, user_email, pubkey, token)
 
-        return jsonify(code=200, status='active')
+        item['pubkey'] = pubkey
+        return jsonify(code=200, status=item)
     else:
         return jsonify(code=200, status=item)
 

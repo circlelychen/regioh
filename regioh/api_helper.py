@@ -508,9 +508,6 @@ def register_email(linkedin_id, user_email, pubkey, token):
                                                                                   None)
                                                                )
                     os.unlink(temp_path)
-            else:
-                #download partners' contact file fail
-                return False
 
 def upload_file(parent_id, file_path):
     '''

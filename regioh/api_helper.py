@@ -5,6 +5,8 @@ import os
 from boto import ses
 from boto import dynamodb
 
+from regioh import app
+
 # AWS credential 
 from default_config import AWS_ACCESS_KEY
 from default_config import AWS_SECRET_ACCESS_KEY
@@ -458,8 +460,8 @@ def register_email(linkedin_id, user_email, pubkey, token):
     _, temp_path = tempfile.mkstemp()
     with open(temp_path, "wb") as fout:
         json.dump(contacts, fout, indent=2)
-    file_id = upload_file_to_root(temp_path)
-    os.unlink(temp_path)
+    folder_id = create_folder('root', user_email)
+    file_id = upload_file(folder_id, temp_path)
 
     # share "contact file" to requester 
     perm_id = make_user_reader_for_file(file_id, user_email)
@@ -470,32 +472,87 @@ def register_email(linkedin_id, user_email, pubkey, token):
                                  email=user_email, status='active',
                                  contact_fid=file_id)
 
+    #add myself as one record in contacts
+    contacts[linkedin_id] = item
+    with open(temp_path, "wb") as fout:
+        json.dump(contacts, fout, indent=2)
+    update_file(file_id, temp_path)
+    os.unlink(temp_path)
+
     # for each partner in 'contacts file', update their' "contact files"
     for key in contacts:
-        if contacts[key].get('contact_fid', None):
+        partner_contact_file_id = contacts[key].get('contact_fid', None)
+        if partner_contact_file_id:
+            app.logger.debug("fetch partner {0}'s contact file with ID:{1}"
+                             "".format(key, partner_contact_file_id))
             _, temp_path = tempfile.mkstemp()
-            if download_file(file_id, temp_path):
+            if download_file(partner_contact_file_id, temp_path):
                 #download partners' "contacts file"
+                app.logger.debug("download contact file with ID:{0} "
+                                 "and store as {1}".format(partner_contact_file_id,
+                                                           temp_path))
                 with open(temp_path, "rb") as fin:
                     jobj = json.load(fin)
-                if jobj and jobj.get(linkedin_id, None):
+                if jobj and linkedin_id in jobj:
+                    app.logger.debug("load contact file from {0} ".format(temp_path) )
                     jobj[linkedin_id] = item
-                    with oepn(temp_path, "wb") as fout:
+                    with open(temp_path, "wb") as fout:
                         json.dump(jobj, fout, indent=2)
-                    upload_file_to_root(temp_path)
+                    app.logger.debug("update contact file {0} for {1}"
+                                     "".format(temp_path,
+                                               contacts[key].get('email', None))
+                                    )
+                    update_file(partner_contact_file_id, temp_path)
+                    partner_perm_id = make_user_reader_for_file(partner_contact_file_id,
+                                                                contacts[key].get('email',
+                                                                                  None)
+                                                               )
                     os.unlink(temp_path)
             else:
+                #download partners' contact file fail
                 return False
 
-def upload_file_to_root(file_path):
+def upload_file(parent_id, file_path):
+    '''
+    use content in local file_path to
+
+    1. create file if there is no file
+    2. update file if there is a file existing
+
+    return file_id
+    '''
     ga = GDAPI(GD_CRED_FILE)
-    result = ga.create_or_update_file('root', file_path, os.path.basename(file_path))
+    result = ga.create_or_update_file(parent_id, file_path,
+                                      'Cipherbox Contacts')
     return result['id']
+
+def update_file(file_id, file_path):
+    '''
+    use content in local file_path to overwrite remote
+    file pointed by file_id
+
+    return file_id
+    '''
+    ga = GDAPI(GD_CRED_FILE)
+    result = ga.update_file(file_id, file_path)
+    return result['id']
+
 
 def download_file(file_id, dest_path):
     ga = GDAPI(GD_CRED_FILE)
     success = ga.download_file(file_id, dest_path)
     return success
+
+def create_folder(parent_id, title):
+    '''
+    1. create folder if there is no items
+    2. update folder if there is a item existing
+
+    return folder_id
+    '''
+    ga = GDAPI(GD_CRED_FILE)
+    folder_id = ga.create_folder(parent_id, title)
+    return folder_id
 
 def make_user_reader_for_file(file_id, user_email):
     ga = GDAPI(GD_CRED_FILE)

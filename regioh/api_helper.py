@@ -21,6 +21,7 @@ from default_config import TOKEN_LIFE_TIME
 # Dynamodb tables definition 
 from default_config import SIGNUP
 from default_config import AUTH
+from default_config import v2_AUTH
 
 # gdapi module for interact with Google Drive
 from gdapi.gdapi import GDAPI

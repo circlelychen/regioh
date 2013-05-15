@@ -473,7 +473,7 @@ def register_email(linkedin_id, user_email, pubkey, token):
                                  contact_fid=file_id)
 
     #add myself as one record in contacts
-    contacts[linkedin_id] = item
+    contacts['me'] = item
     with open(temp_path, "wb") as fout:
         json.dump(contacts, fout, indent=2)
     update_file(file_id, temp_path)
@@ -481,6 +481,8 @@ def register_email(linkedin_id, user_email, pubkey, token):
 
     # for each partner in 'contacts file', update their' "contact files"
     for key in contacts:
+        if key == 'me':
+            continue
         partner_contact_file_id = contacts[key].get('contact_fid', None)
         if partner_contact_file_id:
             app.logger.debug("fetch partner {0}'s contact file with ID:{1}"

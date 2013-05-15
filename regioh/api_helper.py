@@ -126,7 +126,7 @@ def _request_v1_token(client_id, client_secret):
     return r.status_code, r.content, None, None
 
 def get_oauth1_request_url():
-    from flask import session 
+    from flask import session
     client_id = LK_CLIENT_ID
     client_secret = LK_CLIENT_SECRET
     print "[check] client_id is {0}".format(client_id)
@@ -252,7 +252,7 @@ def notify_email(email, content):
     if not conn:
         raise Exception
     print "AWS_SES_SENDER: {0}".format(AWS_SES_SENDER)
-    try: 
+    try:
         conn.send_email(AWS_SES_SENDER,
                         'Welcome to Cipherbox',
                         content,
@@ -288,6 +288,35 @@ def addto_dynamodb_reg(linked_id, pubkey='N/A', token='N/A',
                        contact_fid='N/A'):
     """Return status, record"""
     tbl = get_dynamodb_table(AUTH)
+    if tbl.has_item(hash_key=linked_id):
+        item = tbl.get_item(
+            hash_key=linked_id,
+            )
+        item.delete()
+    try:
+        item = tbl.new_item(
+            hash_key=linked_id,
+            attrs={
+                'permid': perm_id,
+                'pubkey': pubkey,
+                'pubkey_md5': pubkey_md5,
+                'email': email,
+                'token': token,
+                'status': status,
+                'contact_fid': contact_fid,
+            }
+            )
+    except Exception as e:
+        print e
+    item.put()
+    return item
+
+def addto_dynamodb_reg_v2(linked_id, pubkey='N/A', token='N/A',
+                          pubkey_md5='N/A', perm_id='N/A',
+                          email='N/A', status='inactive',
+                          contact_fid='N/A'):
+    """Return status, record"""
+    tbl = get_dynamodb_table(v2_AUTH)
     if tbl.has_item(hash_key=linked_id):
         item = tbl.get_item(
             hash_key=linked_id,
@@ -415,16 +444,17 @@ def register_email(linkedin_id, user_email, pubkey, token):
     perm_id = make_user_reader_for_file(file_id, user_email)
 
     # insert new record into dynamo db
-    item = addto_dynamodb_reg(linkedin_id, pubkey=pubkey,
-                              token=token, perm_id=perm_id,
-                              email=user_email, status='active',
-                              contact_fid=file_id)
+    item = addto_dynamodb_reg_v2(linkedin_id, pubkey=pubkey,
+                                 token=token, perm_id=perm_id,
+                                 email=user_email, status='active',
+                                 contact_fid=file_id)
 
-    # for each item in 'contacts file', update their contact files
+    # for each partner in 'contacts file', update their' "contact files"
     for key in contacts:
         if contacts[key].get('contact_fid', None):
             _, temp_path = tempfile.mkstemp()
             if download_file(file_id, temp_path):
+                #download partners' "contacts file"
                 with open(temp_path, "rb") as fin:
                     jobj = json.load(fin)
                 if jobj and jobj.get(linkedin_id, None):
@@ -443,7 +473,8 @@ def upload_file_to_root(file_path):
 
 def download_file(file_id, dest_path):
     ga = GDAPI(GD_CRED_FILE)
-    ga.download_file(file_id, dest_path)
+    success = ga.download_file(file_id, dest_path)
+    return success
 
 def make_user_reader_for_file(file_id, user_email):
     ga = GDAPI(GD_CRED_FILE)

@@ -55,6 +55,7 @@ if os.path.isfile(TWILIO_FILE):
 TOKEN_LIFE_TIME = 30
 SIGNUP = 'signup'
 AUTH = 'auth'
+v2_AUTH = 'v2_auth'
 #Dictionary describing response status for REST APIs
 MESSAGE = {'success': 'SUCCESS',
            'no_linkedin_account': 'NO_LINKEDIN_ACCOUNT',

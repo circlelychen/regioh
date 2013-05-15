@@ -232,6 +232,26 @@ def get_db_data(linked_ids):
             result[active_id] = active
     return result
 
+def get_db_data_v2(linked_ids):
+    from boto.dynamodb.condition import EQ
+    tbl = get_dynamodb_table(v2_AUTH)
+    actives = tbl.scan(scan_filter = {
+        "status": EQ('active')
+    #})
+    }, attributes_to_get = ['linkedin_id', 'status',
+                           'pubkey', 'email', 'permid',
+                            'pubkey_md5', 'contact_fid'
+                           ])
+    result = {}
+
+    for linked_id in linked_ids:
+        result[linked_id] = {}
+    for active in actives:
+        active_id = active['linkedin_id']
+        if active_id in linked_ids:
+            result[active_id] = active
+    return result
+
 def fetch_public_key(google_file_id):
     import requests
     url = GOOGLE_DOWNLOAD_URL
@@ -432,7 +452,7 @@ def register_email(linkedin_id, user_email, pubkey, token):
     status, jobj = get_linkedin_connection(record['oauth_token'],
                                            record['oauth_token_secret'])
     linkedin_ids = [x['id'] for x in jobj['values'] if x['id'] != 'private']
-    contacts = get_db_data(linkedin_ids)
+    contacts = get_db_data_v2(linkedin_ids)
 
     # insert "contacts file" into GD
     _, temp_path = tempfile.mkstemp()

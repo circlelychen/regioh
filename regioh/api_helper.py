@@ -70,7 +70,7 @@ def _linkedin_request(url, access_token, access_secret):
 def get_linkedin_basic_profile(access_token, access_secret):
     url = urlparse.urljoin(
         LINKEDIN_API_URL,
-        'v1/people/~:(id,first-name,last-name,email-address)')
+        'v1/people/~:(id,first-name,last-name,picture-url,public-profile-url,positions,headline,email-address)')
     return _linkedin_request(url, access_token, access_secret)
 
 def get_linkedin_connection(access_token, access_secret):

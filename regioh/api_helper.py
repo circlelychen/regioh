@@ -234,7 +234,7 @@ def get_db_data(linked_ids):
             result[active_id] = active
     return result
 
-def get_db_data_v2(linked_ids):
+def associate_db_data_v2(access_token, access_secret, linked_connections):
     from boto.dynamodb.condition import EQ
     tbl = get_dynamodb_table(v2_AUTH)
     actives = tbl.scan(scan_filter = {
@@ -244,14 +244,16 @@ def get_db_data_v2(linked_ids):
                            'pubkey', 'email', 'permid',
                             'pubkey_md5', 'contact_fid'
                            ])
-    result = {}
 
-    for linked_id in linked_ids:
-        result[linked_id] = {}
+    result = {}
+    for linkedin_item in linked_connections:
+        result[linkedin_item['id']] = linkedin_item
+        result[linkedin_item['id']]['status'] = 'inactive'
     for active in actives:
         active_id = active['linkedin_id']
-        if active_id in linked_ids:
-            result[active_id] = active
+        if result.get(active_id, None):
+            for key in active:
+                result[active_id][key] = active[key]
     return result
 
 def fetch_public_key(google_file_id):

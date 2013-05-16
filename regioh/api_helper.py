@@ -524,11 +524,13 @@ def register_email(linkedin_id, user_email, pubkey, token):
                                                            temp_path))
                 with open(temp_path, "rb") as fin:
                     jobj = json.load(fin)
-                if jobj and linkedin_id in jobj:
+                if jobj and linkedin_id in jobj['contacts']:
                     app.logger.debug("load contact file from {0} ".format(temp_path) )
-                    jobj[linkedin_id] = item
+                    jobj['contacts'][linkedin_id] = item
+                    for index in jobj_profile:
+                        jobj['contacts'][linkedin_id][index] = jobj_profile[index]
                     with open(temp_path, "wb") as fout:
-                        json.dump(jobj, fout, indent=2)
+                        _write_contacts_result(fout, code=0, contacts=jobj['contacts'])
                     app.logger.debug("update contact file {0} for {1}"
                                      "".format(temp_path,
                                                contacts[key].get('email', None))

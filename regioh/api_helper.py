@@ -447,14 +447,39 @@ def compute_C(rsa_pub_key_string, rand32):
 ###########################################
 # helper function for Google Drive 
 ##########################################
+def _write_contacts_result(fout, code=0, contacts={}, extra={}):
+    result = {}
+    result['code'] = code
+
+    # insert default extra object  
+    if not extra:
+        extra = {'code': 200, 'message': 'SUCCESS'}
+    result['extra'] = {'code': 200, 'message': 'SUCCESS'}
+
+    # remove 'linkedin_id' element if co-exist 'linkedin_id' and 'id'
+    for key in contacts:
+        if contacts[key].get('linkedin_id', None) and \
+           contacts[key].get('id', None):
+            if contacts[key]['linkedin_id'] == contacts[key]['id']:
+                del contacts[key]['linkedin_id']
+    result['contacts'] = contacts
+
+    json.dump(result, fout, indent=2)
+
 def register_email(linkedin_id, user_email, pubkey, token):
 
     # fetch linkedin and contact object generate json format 
     record = get_token_check(token)
+
     status, jobj = get_linkedin_connection(record['oauth_token'],
                                            record['oauth_token_secret'])
-    linkedin_ids = [x['id'] for x in jobj['values'] if x['id'] != 'private']
-    contacts = get_db_data_v2(linkedin_ids)
+    linkedin_connections = [x for x in jobj['values'] if x['id'] != 'private']
+    contacts = associate_db_data_v2(record['oauth_token'],
+                                    record['oauth_token_secret'],
+                                    linkedin_connections)
+
+    status_profile, jobj_profile = get_linkedin_basic_profile(record['oauth_token'],
+                                                              record['oauth_token_secret'])
 
     # insert "contacts file" into GD
     _, temp_path = tempfile.mkstemp()
@@ -474,8 +499,10 @@ def register_email(linkedin_id, user_email, pubkey, token):
 
     #add myself as one record in contacts
     contacts['me'] = item
+    for index in jobj_profile:
+        contacts['me'][index] = jobj_profile[index]
     with open(temp_path, "wb") as fout:
-        json.dump(contacts, fout, indent=2)
+        _write_contacts_result(fout, code=0, contacts=contacts)
     update_file(file_id, temp_path)
     os.unlink(temp_path)
 

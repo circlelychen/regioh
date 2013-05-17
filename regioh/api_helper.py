@@ -500,6 +500,7 @@ def register_email(linkedin_id, user_email, pubkey, token):
     file_id = upload_file(folder_id, temp_path)
 
     # share "contact file" to requester 
+    success = unshare(file_id)
     perm_id = make_user_reader_for_file(file_id, user_email)
 
     # insert new record into dynamo db
@@ -545,6 +546,7 @@ def register_email(linkedin_id, user_email, pubkey, token):
                                                contacts[key].get('email', None))
                                     )
                     update_file(partner_contact_file_id, temp_path)
+                    success = unshare(partner_contact_file_id)
                     partner_perm_id = make_user_reader_for_file(partner_contact_file_id,
                                                                 contacts[key].get('email',
                                                                                   None)
@@ -592,6 +594,12 @@ def create_folder(parent_id, title):
     ga = GDAPI(GD_CRED_FILE)
     folder_id = ga.create_folder(parent_id, title)
     return folder_id
+
+def unshare(res_id):
+    ga = GDAPI(GD_CRED_FILE)
+    success = ga.unshare(res_id)
+    return success 
+
 
 def make_user_reader_for_file(file_id, user_email):
     ga = GDAPI(GD_CRED_FILE)

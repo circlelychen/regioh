@@ -36,6 +36,7 @@ from requests_oauthlib import OAuth1
 
 import tempfile
 import json
+import threading
 
 LINKEDIN_API_URL = 'https://api.linkedin.com/'
 GOOGLE_DOWNLOAD_URL = 'https://docs.google.com/uc'
@@ -477,6 +478,42 @@ def _write_contacts_result(fout, code=0, contacts={}, extra={}):
 
     json.dump(result, fout, indent=2)
 
+def update_connection_contacts_files(id, reg_item, profile, contacts):
+    # for each partner in 'contacts file', update their' "contact files"
+    for key in contacts:
+        if key == 'me':
+            continue
+        partner_contact_file_id = contacts[key].get('contact_fid', None)
+        if partner_contact_file_id:
+            app.logger.debug("fetch partner {0}'s contact file with ID:{1}"
+                             "".format(key, partner_contact_file_id))
+            _, temp_path = tempfile.mkstemp()
+            if download_file(partner_contact_file_id, temp_path):
+                #download partners' "contacts file"
+                app.logger.debug("download contact file with ID:{0} "
+                                 "and store as {1}".format(partner_contact_file_id,
+                                                           temp_path))
+                with open(temp_path, "rb") as fin:
+                    jobj = json.load(fin)
+                if jobj and id in jobj['contacts']:
+                    app.logger.debug("load contact file from {0} ".format(temp_path) )
+                    jobj['contacts'][id] = reg_item
+                    for index in profile:
+                        jobj['contacts'][id][index] = profile[index]
+                    with open(temp_path, "wb") as fout:
+                        _write_contacts_result(fout, code=0, contacts=jobj['contacts'])
+                    app.logger.debug("update contact file {0} for {1}"
+                                     "".format(temp_path,
+                                               contacts[key].get('email', None))
+                                    )
+                    update_file(partner_contact_file_id, temp_path)
+                    success = unshare(partner_contact_file_id)
+                    partner_perm_id = make_user_reader_for_file(partner_contact_file_id,
+                                                                contacts[key].get('email',
+                                                                                  None)
+                                                               )
+                    os.unlink(temp_path)
+
 def register_email(linkedin_id, user_email, pubkey, token):
 
     # fetch linkedin and contact object generate json format 
@@ -518,40 +555,13 @@ def register_email(linkedin_id, user_email, pubkey, token):
     update_file(file_id, temp_path)
     os.unlink(temp_path)
 
+
     # for each partner in 'contacts file', update their' "contact files"
-    for key in contacts:
-        if key == 'me':
-            continue
-        partner_contact_file_id = contacts[key].get('contact_fid', None)
-        if partner_contact_file_id:
-            app.logger.debug("fetch partner {0}'s contact file with ID:{1}"
-                             "".format(key, partner_contact_file_id))
-            _, temp_path = tempfile.mkstemp()
-            if download_file(partner_contact_file_id, temp_path):
-                #download partners' "contacts file"
-                app.logger.debug("download contact file with ID:{0} "
-                                 "and store as {1}".format(partner_contact_file_id,
-                                                           temp_path))
-                with open(temp_path, "rb") as fin:
-                    jobj = json.load(fin)
-                if jobj and linkedin_id in jobj['contacts']:
-                    app.logger.debug("load contact file from {0} ".format(temp_path) )
-                    jobj['contacts'][linkedin_id] = item
-                    for index in jobj_profile:
-                        jobj['contacts'][linkedin_id][index] = jobj_profile[index]
-                    with open(temp_path, "wb") as fout:
-                        _write_contacts_result(fout, code=0, contacts=jobj['contacts'])
-                    app.logger.debug("update contact file {0} for {1}"
-                                     "".format(temp_path,
-                                               contacts[key].get('email', None))
-                                    )
-                    update_file(partner_contact_file_id, temp_path)
-                    success = unshare(partner_contact_file_id)
-                    partner_perm_id = make_user_reader_for_file(partner_contact_file_id,
-                                                                contacts[key].get('email',
-                                                                                  None)
-                                                               )
-                    os.unlink(temp_path)
+    t = threading.Thread(target=update_connection_contacts_files,
+                        args=(linkedin_id,item,jobj_profile,contacts,),
+                        name='update_connection_contacts_files')
+    t.setDaemon(True)
+    t.start()
 
 def upload_file(parent_id, file_path):
     '''

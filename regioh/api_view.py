@@ -94,9 +94,9 @@ def v2_register():
         del item['oauth_token_secret']
         del item['token']
         del item['reg_data']
-        return jsonify(code=200, status=item)
+        return jsonify(code=200, result=item, status=item)
     else:
-        return jsonify(code=200, status=item)
+        return jsonify(code=200, result=item, status=item)
 
 @app.route('/v1/linkedin', methods=['POST'])
 def v1_linkedin():

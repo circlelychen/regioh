@@ -598,7 +598,7 @@ def create_folder(parent_id, title):
 def unshare(res_id):
     ga = GDAPI(GD_CRED_FILE)
     success = ga.unshare(res_id)
-    return success 
+    return success
 
 
 def make_user_reader_for_file(file_id, user_email):

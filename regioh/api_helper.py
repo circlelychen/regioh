@@ -276,8 +276,6 @@ def notify_email(email, content):
         aws_secret_access_key=AWS_SECRET_ACCESS_KEY)
     if not conn:
         raise Exception
-    app.logger.debug("AWS_SES_SENDER: {0}".format(AWS_SES_SENDER))
-    app.logger.debug("AWS_SES_RECIEVER: {0}".format(email))
     try:
         resp = {'SendEmailResponse': None}
         while not resp.get('SendEmailResponse', None):
@@ -285,10 +283,16 @@ def notify_email(email, content):
                                    'Welcome to Cipherbox',
                                    content,
                                    [email])
-        app.logger.debug("notify_email[SUCCESS]")
+        app.logger.debug("[SUCCESS] "
+                         "AWS_SES_SENDER: {0} "
+                         "AWS_SES_RECEIVER: {1} ".format(AWS_SES_SENDER,
+                                                         email))
         return True
     except Exception as e:
-        app.logger.debug("notify_email[FAIL]")
+        app.logger.debug("[FAILURE] "
+                         "AWS_SES_SENDER: {0} "
+                         "AWS_SES_RECEIVER: {1} ".format(AWS_SES_SENDER,
+                                                         email))
         return False
 
 def get_dynamodb_table(table_name):

@@ -7,3 +7,5 @@ nose==1.2.1
 pycrypto==2.6
 requests==1.2.0
 requests-oauthlib==0.3.0
+celery-with-redis==3.0
+gdapi==0.0.3

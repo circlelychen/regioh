@@ -87,7 +87,7 @@ def v2_register():
     if item['status'] == MESSAGE['success']:
         from api_helper import register_email
         linkedin_id = item['linkedin_id']
-        register_email(linkedin_id, user_email, pubkey, token)
+        register_email(linkedin_id, user_email, pubkey, token, item)
 
         item['pubkey'] = pubkey
         del item['oauth_token']

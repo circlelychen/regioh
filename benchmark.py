@@ -19,7 +19,7 @@ if path not in sys.path:
 from gdapi.gdapi import GDAPI
 q = Queue()
 
-accounts = ['cipherbox@cloudioh.com.cred.json'
+accounts = ['cipherbox@cloudioh.com.cred.json',
             'developer@cloudioh.com.cred.json',
             'apple110531@gmail.com.cred.json',
             'banana110531@gmail.com.cred.json',

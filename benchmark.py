@@ -19,14 +19,14 @@ if path not in sys.path:
 from gdapi.gdapi import GDAPI
 q = Queue()
 
-accounts = [#'cipherbox@cloudioh.com.cred.json'
-            #'developer@cloudioh.com.cred.json',
-            #'apple110531@gmail.com.cred.json',
+accounts = ['cipherbox@cloudioh.com.cred.json'
+            'developer@cloudioh.com.cred.json',
+            'apple110531@gmail.com.cred.json',
             'banana110531@gmail.com.cred.json',
-            #'cherry110531@gmail.com.cred.json',
-            #'justin_jan@cloudioh.com.cred.json',
-            #'jjcipher@gmail.com.cred.json',
-            #'howard_chen@cloudioh.com.cred.json'
+            'cherry110531@gmail.com.cred.json',
+            'justin_jan@cloudioh.com.cred.json',
+            'jjcipher@gmail.com.cred.json',
+            'howard_chen@cloudioh.com.cred.json'
            ]
 #the following content depicts 100 connections for a person
 contact_file = 'connection_contacts'

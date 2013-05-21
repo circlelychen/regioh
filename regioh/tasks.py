@@ -13,7 +13,7 @@ def update_contact_file(id, reg_item, profile, contact):
     partner_contact_file_id = contact.get('contact_fid', None)
     if partner_contact_file_id:
         app.logger.debug("fetch partner {0}'s contact file with ID:{1}"
-                            "".format(contact.get('email', None), partner_contact_file_id))
+                         "".format(contact.get('email', None), partner_contact_file_id))
         _, temp_path = tempfile.mkstemp()
         if api_helper.download_file(partner_contact_file_id, temp_path):
             #download partners' "contacts file"
@@ -30,8 +30,8 @@ def update_contact_file(id, reg_item, profile, contact):
                 with open(temp_path, "wb") as fout:
                     api_helper._write_contacts_result(fout, code=0, contacts=jobj['contacts'])
                 app.logger.debug("update contact file {0} for {1}"
-                                    "".format(temp_path,
-                                              contact.get('email', None))
+                                 "".format(temp_path,
+                                           contact.get('email', None))
                                 )
                 api_helper.update_file(partner_contact_file_id, temp_path)
                 success = api_helper.unshare(partner_contact_file_id)

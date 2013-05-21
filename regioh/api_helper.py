@@ -563,6 +563,7 @@ def update_file(file_id, file_path):
     ga = GDAPI(GD_CRED_FILE)
     result = ga.update_file(file_id, file_path)
     try:
+        app.logger.error(result)
         return result['id']
     except Exception as e:
         app.logger.error('[error] in update_file' )

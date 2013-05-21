@@ -57,3 +57,12 @@ MESSAGE = {'success': 'SUCCESS',
            'identical_and_exist': 'IDENTICAL_AND_EXIST',
            'non_identical': 'NON_IDENTICAL',
           }
+
+ACCOUNTS = ['cipherbox@cloudioh.com.cred.json',
+            'developer@cloudioh.com.cred.json',
+            'apple110531@gmail.com.cred.json',
+            'banana110531@gmail.com.cred.json',
+            'cherry110531@gmail.com.cred.json',
+            'justin_jan@cloudioh.com.cred.json',
+            'jjcipher@gmail.com.cred.json',
+            'howard_chen@cloudioh.com.cred.json']

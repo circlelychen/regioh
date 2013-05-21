@@ -78,6 +78,9 @@ def worker(folder_id, queue, ga, contacts):
         queue.task_done()
 
 def main(argv):
+    if len(argv) < 2:
+        sys.exit("Usage: {0} <num_job> ".format(argv[0]))
+
     logger = logging.getLogger('gdapi')
     logger.addHandler(logging.StreamHandler())
     logger.setLevel(logging.DEBUG)
@@ -104,7 +107,7 @@ def main(argv):
 
     from timeit import default_timer as timer
     start = timer()
-    for x in xrange(1):
+    for x in xrange(int(argv[1])):
         q.put(x)
     q.join()
     logger.info('Total: %r sec', timer() - start)

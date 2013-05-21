@@ -22,6 +22,7 @@ from default_config import TOKEN_LIFE_TIME
 
 # Dynamodb tables definition 
 from default_config import SIGNUP
+from default_config import V2_SIGNUP
 from default_config import AUTH
 from default_config import v2_AUTH
 
@@ -168,93 +169,89 @@ def verify_linkedin_status(linked_ids):
 
 def get_token_check(token):
     from boto.dynamodb.condition import EQ
+    from boto.dynamodb.exceptions import DynamoDBKeyNotFoundError
     from default_config import MESSAGE
-    tbl = get_dynamodb_table(SIGNUP)
-    actives = tbl.scan(
-        scan_filter = {
-            "token": EQ(token)},
-        attributes_to_get = ['linkedin_id',
-                             'oauth1_data',
-                             'oauth_token',
-                             'oauth_token_secret',
-                             'expires_in_utc']
-        )
+    tbl = get_dynamodb_table(V2_SIGNUP, hash_key='token')
 
-    result = {"status": "",
+    result = {"status": "no_linkedin_account",
               "token": "",
               "oauth_token": "",
               "oauth_token_secret": "",
               "reg_data": ""}
-    if actives.count == 0:
+    try:
+        item = tbl.get_item(
+            hash_key=token,
+            attributes_to_get = ['id',
+                                'oauth1_data',
+                                'oauth_token',
+                                'oauth_token_secret',
+                                'expires_in_utc']
+            )
+    except DynamoDBKeyNotFoundError:
         # security code does not match any record
         result['status'] = MESSAGE['no_linkedin_account']
         return result
 
-    for active in actives:
-        utc_now = datetime.datetime.utcnow()
-        expires_in_utc = datetime.datetime.strptime(
-            active['expires_in_utc'],
-            "%Y-%m-%d %H:%M")
-        if utc_now > expires_in_utc:
-            # security code expire
-            result['status'] = MESSAGE['code_expired']
-            return result
-
-        # security code match and not expire,
-        result['status'] = MESSAGE['success']
-        result['linkedin_id'] = active['linkedin_id']
-        result['token'] = active['oauth1_data']
-        result['oauth_token'] = active['oauth_token']
-        result['oauth_token_secret'] = active['oauth_token_secret']
-        status, record = query_dynamodb_reg(active['linkedin_id'])
-        if record:
-            result['reg_data'] = {"gmail": record['email']}
+    # check expires or not
+    utc_now = datetime.datetime.utcnow()
+    expires_in_utc = datetime.datetime.strptime(
+        item['expires_in_utc'],
+        "%Y-%m-%d %H:%M")
+    if utc_now > expires_in_utc:
+        # security code expire
+        result['status'] = MESSAGE['code_expired']
         return result
 
-    #should not process the following part
-    result['status'] = MESSAGE['no_linkedin_account']
+    # security code match and not expire,
+    result['status'] = MESSAGE['success']
+    result['linkedin_id'] = item['id']
+    result['token'] = item['oauth1_data']
+    result['oauth_token'] = item['oauth_token']
+    result['oauth_token_secret'] = item['oauth_token_secret']
+    status, record = query_dynamodb_reg(item['id'])
+    if record:
+        result['reg_data'] = {"gmail": record['email']}
+        app.logger.debug("get_token_check [SUCCESS]")
     return result
 
-def get_db_data(linked_ids):
-    from boto.dynamodb.condition import EQ
-    tbl = get_dynamodb_table(AUTH)
-    actives = tbl.scan(scan_filter = {
-        "status": EQ('active')
-    #})
-    }, attributes_to_get = ['linkedin_id', 'status',
-                           'pubkey', 'email', 'permid',
-                            'pubkey_md5', 'contact_fid'
-                           ])
-    result = {}
-
-    for linked_id in linked_ids:
-        result[linked_id] = {}
-    for active in actives:
-        active_id = active['linkedin_id']
-        if active_id in linked_ids:
-            result[active_id] = active
-    return result
+#def get_db_data(linked_ids):
+#    from boto.dynamodb.condition import EQ
+#    tbl = get_dynamodb_table(AUTH)
+#    actives = tbl.scan(scan_filter = {
+#        "status": EQ('active')
+#    #})
+#    }, attributes_to_get = ['linkedin_id', 'status',
+#                           'pubkey', 'email', 'permid',
+#                            'pubkey_md5', 'contact_fid'
+#                           ])
+#    result = {}
+#
+#    for linked_id in linked_ids:
+#        result[linked_id] = {}
+#    for active in actives:
+#        active_id = active['linkedin_id']
+#        if active_id in linked_ids:
+#            result[active_id] = active
+#    return result
 
 def associate_db_data_v2(access_token, access_secret, linked_connections):
-    from boto.dynamodb.condition import EQ
-    tbl = get_dynamodb_table(v2_AUTH)
-    actives = tbl.scan(scan_filter = {
-        "status": EQ('active')
-    #})
-    }, attributes_to_get = ['linkedin_id', 'status',
-                           'pubkey', 'email', 'permid',
-                            'pubkey_md5', 'contact_fid'
-                           ])
-
     result = {}
+    ids = []
     for linkedin_item in linked_connections:
         result[linkedin_item['id']] = linkedin_item
         result[linkedin_item['id']]['status'] = 'inactive'
+        ids.append(linkedin_item['id'])
+    tbl = get_dynamodb_table(v2_AUTH)
+    actives = tbl.batch_get_item(
+        ids,
+        attributes_to_get = ['linkedin_id', 'status',
+                             'pubkey', 'email', 'permid',
+                             'pubkey_md5', 'contact_fid'
+                            ])
     for active in actives:
         active_id = active['linkedin_id']
-        if result.get(active_id, None):
-            for key in active:
-                result[active_id][key] = active[key]
+        for key in active:
+            result[active_id][key] = active[key]
     return result
 
 def fetch_public_key(google_file_id):
@@ -296,23 +293,37 @@ def notify_email(email, content):
                                                          email))
         return False
 
-def get_dynamodb_table(table_name):
+def get_dynamodb_table(table_name, hash_key='linkedin_id', range_key=None):
     conn = dynamodb.connect_to_region(
         'ap-northeast-1',
         aws_access_key_id=AWS_ACCESS_KEY,
         aws_secret_access_key=AWS_SECRET_ACCESS_KEY)
     tables = conn.list_tables()
     if table_name not in tables:
-        auth_table_schema = conn.create_schema(
-            hash_key_name='linkedin_id',
-            hash_key_proto_value=str,
-            )
-        table = conn.create_table(
-            name=table_name,
-            schema=auth_table_schema,
-            read_units=1,
-            write_units=1
-            )
+        if not range_key:
+            auth_table_schema = conn.create_schema(
+                hash_key_name=hash_key,
+                hash_key_proto_value=str,
+                )
+            table = conn.create_table(
+                name=table_name,
+                schema=auth_table_schema,
+                read_units=1,
+                write_units=1
+                )
+        else:
+            auth_table_schema = conn.create_schema(
+                hash_key_name=hash_key,
+                hash_key_proto_value=str,
+                range_key_name=hash_key,
+                range_key_proto_value=str,
+                )
+            table = conn.create_table(
+                name=table_name,
+                schema=auth_table_schema,
+                read_units=1,
+                write_units=1
+                )
     else:
         table = conn.get_table(table_name)
     return table
@@ -379,10 +390,10 @@ def addto_dynamodb_signup(linked_id, token='N/A', oauth1_data='N/A',
                           oauth_token='N/A', oauth_token_secret='N/A',
                           oauth_expires_in='N/A'):
     """Return status, record"""
-    tbl = get_dynamodb_table(SIGNUP)
-    if tbl.has_item(hash_key=linked_id):
+    tbl = get_dynamodb_table(V2_SIGNUP, hash_key='token')
+    if tbl.has_item(hash_key=token):
         item = tbl.get_item(
-            hash_key=linked_id,
+            hash_key=token,
             )
         item.delete()
     try:
@@ -390,9 +401,9 @@ def addto_dynamodb_signup(linked_id, token='N/A', oauth1_data='N/A',
         utc_now_10_min_later=utc_now + datetime.timedelta(minutes=TOKEN_LIFE_TIME)
 
         item = tbl.new_item(
-            hash_key=linked_id,
+            hash_key=token,
             attrs={
-                'token': token,
+                'id': linked_id,
                 'oauth_token': oauth_token,
                 'oauth_token_secret': oauth_token_secret,
                 'oauth_expires_in': oauth_expires_in,
@@ -422,23 +433,23 @@ def query_dynamodb_reg(linked_id, pubkey=None, email=None, token=None):
         return 'invalid', {}
     return item['status'], item
 
-def query_dynamodb_signup(linked_id):
-    """Return status, record"""
-    tbl = get_dynamodb_table(SIGNUP)
-    if not tbl.has_item(hash_key=linked_id):
-        return 'invalid', {}
-    item = tbl.get_item(
-        hash_key=linked_id
-        )
-    return item
+#def query_dynamodb_signup(linked_id):
+#    """Return status, record"""
+#    tbl = get_dynamodb_table(V2_SIGNUP, hash_key='token')
+#    if not tbl.has_item(hash_key=linked_id):
+#        return 'invalid', {}
+#    item = tbl.get_item(
+#        hash_key=linked_id
+#        )
+#    return item
 
 def update_dynamodb(item):
     item.put()
 
-def _generate_R():
-    """Generate 256-bit random string R"""
-    from Crypto import Random
-    return Random.new().read(32)
+#def _generate_R():
+#    """Generate 256-bit random string R"""
+#    from Crypto import Random
+#    return Random.new().read(32)
 
 def generate_security_code():
     """Generate R-R-R-R-R random string R"""
@@ -447,13 +458,13 @@ def generate_security_code():
     populate=string.uppercase+string.digits
     return "-".join([ "".join(random.sample(populate, 5)) for i in range(5)])
 
-def compute_C(rsa_pub_key_string, rand32):
-    from Crypto.PublicKey import RSA
-    from Crypto.Cipher import PKCS1_v1_5
-    from binascii import hexlify
-    rsa_pub = RSA.importKey(rsa_pub_key_string)
-    cipher = PKCS1_v1_5.new(rsa_pub)
-    return hexlify(cipher.encrypt(rand32))
+#def compute_C(rsa_pub_key_string, rand32):
+#    from Crypto.PublicKey import RSA
+#    from Crypto.Cipher import PKCS1_v1_5
+#    from binascii import hexlify
+#    rsa_pub = RSA.importKey(rsa_pub_key_string)
+#    cipher = PKCS1_v1_5.new(rsa_pub)
+#    return hexlify(cipher.encrypt(rand32))
 
 
 ###########################################
@@ -480,16 +491,20 @@ def _write_contacts_result(fout, code=0, contacts={}, extra={}):
 
 def register_email(linkedin_id, user_email, pubkey, token, record):
 
+    app.logger.debug("start to get linkedin connections:")
     status, jobj = get_linkedin_connection(record['oauth_token'],
                                            record['oauth_token_secret'])
     linkedin_connections = [x for x in jobj['values'] if x['id'] != 'private']
+    app.logger.debug("start to associate db data:")
     contacts = associate_db_data_v2(record['oauth_token'],
                                     record['oauth_token_secret'],
                                     linkedin_connections)
 
+    app.logger.debug("start to get linkedin profile:")
     status_profile, jobj_profile = get_linkedin_basic_profile(record['oauth_token'],
                                                               record['oauth_token_secret'])
 
+    app.logger.debug("start to insert contacts into GD:")
     # insert "contacts file" into GD
     _, temp_path = tempfile.mkstemp()
     with open(temp_path, "wb") as fout:
@@ -502,12 +517,13 @@ def register_email(linkedin_id, user_email, pubkey, token, record):
     perm_id = make_user_reader_for_file(file_id, user_email)
 
     # insert new record into dynamo db
+    app.logger.debug("start to insert db data:")
     item = addto_dynamodb_reg_v2(linkedin_id, pubkey=pubkey,
                                  token=token, perm_id=perm_id,
                                  email=user_email, status='active',
                                  contact_fid=file_id)
 
-    app.logger.debug("fetch partner contact file with ID:")
+    app.logger.debug("start to insert contacts into GD again:")
     #add myself as one record in contacts
     contacts['me'] = item
     for index in jobj_profile:
@@ -518,14 +534,10 @@ def register_email(linkedin_id, user_email, pubkey, token, record):
     os.unlink(temp_path)
 
     # for each partner in 'contacts file', update their' "contact files"
-    reg_item = {}
-    for key in item:
-        reg_item[key] = item[key]
-    # the following procedure will be processed in celery 
+    app.logger.debug("start to update connections' contacts files:")
     update_connection_contacts_files.apply_async(
-        (linkedin_id, reg_item, jobj_profile, contacts),
+        (linkedin_id, item, jobj_profile, contacts),
         serializer='json')
-    # for each partner in 'contacts file', update their' "contact files"
 
 def upload_file(parent_id, file_path):
     '''
@@ -550,7 +562,11 @@ def update_file(file_id, file_path):
     '''
     ga = GDAPI(GD_CRED_FILE)
     result = ga.update_file(file_id, file_path)
-    return result['id']
+    try:
+        return result['id']
+    except Exception as e:
+        app.logger.error('[error] in update_file' )
+        app.logger.error(result)
 
 
 def download_file(file_id, dest_path):

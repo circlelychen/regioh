@@ -27,6 +27,9 @@ if os.path.isfile(LK_AUTH_FILE):
         LK_CLIENT_SECRET = jobj['client_secret']
         LK_REDIRECT_URL = jobj['redirect_url']
 
+########################################
+# The following part is used by cipherbox_oauth_init
+#######################################
 GD_AUTH_FILE = os.path.join(os.path.dirname(PROJECT_ROOT), '.gd_auth')
 if os.path.isfile(GD_AUTH_FILE):
     with open(GD_AUTH_FILE, 'rb') as fin:
@@ -37,23 +40,13 @@ if os.path.isfile(GD_AUTH_FILE):
         GD_LOGIN_HINT = jobj['login_hint']
 
 ########################################
-# credential for google dirve
+# credential for google dirve. gdapi
 #######################################
 GD_CRED_FILE = os.path.join(os.path.dirname(PROJECT_ROOT), '.cred.json')
 
-TWILIO_SID = None
-TWILIO_TOKEN = None
-TWILIO_FROM = None
-TWILIO_FILE = os.path.join(os.path.dirname(PROJECT_ROOT), '.twilio')
-if os.path.isfile(TWILIO_FILE):
-    with open(TWILIO_FILE, 'rb') as fin:
-        jobj = json.load(fin)
-        TWILIO_SID = jobj['sid']
-        TWILIO_TOKEN = jobj['auth']
-        TWILIO_FROM = jobj['from']
-
 TOKEN_LIFE_TIME = 30
 SIGNUP = 'signup'
+V2_SIGNUP = 'v2_signup'
 AUTH = 'auth'
 v2_AUTH = 'v2_auth'
 #Dictionary describing response status for REST APIs

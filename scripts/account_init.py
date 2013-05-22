@@ -4,11 +4,15 @@ import sys
 import requests
 import json
 import urlparse
+
+path = os.getcwd()
+if path not in sys.path:
+    sys.path.append(path)
+
 from regioh.default_config import GD_CLIENT_ID
 from regioh.default_config import GD_CLIENT_SECRET
 from regioh.default_config import GD_REDIRECT_URL
 from regioh.default_config import GD_LOGIN_HINT
-
 
 def _access_v2_token(client_id, client_secret, authorization_code, redirect_uri):
     access_token_url = 'https://accounts.google.com/o/oauth2/token'

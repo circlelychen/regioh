@@ -23,19 +23,12 @@ accounts = {
         'oauth_token': 'e64bac71-cb18-4865-bfdd-554f7426eb46',
         'oauth_token_secret': '3dc5ffab-9729-4478-983a-f2b95f1a8ce8'
     },
-    'apple110531@gmail.com': {
-        'id': 'AryLrgEqrF',
-        'oauth_token': 'dedfb682-f57a-4d66-9e10-6ef6c7d72bb5',
-        'oauth_token_secret': '8644996e-e534-412b-bcd2-463a1ad5d2d2'
-    },
-    'banana110531@gmail.com': {
-        'id': 'tmoijVoPVd',
-        'oauth_token': '6ba8a7ac-bf3d-495d-8f1f-6a0d7994074d',
-        'oauth_token_secret': '1d1e2754-0d24-4cf4-bd70-f364f55c4ac4'
+    'cl_sung@cloudioh.com': {
+        'id': 'R1uq7BgE8b',
+        'oauth_token': '41b53348-154b-4242-9289-6ad080555724',
+        'oauth_token_secret': '586dad3a-e7d9-45f2-b3d5-7e49ea2f3980'
     }
 }
-
-
 
 def worker(queue, account):
     while True:

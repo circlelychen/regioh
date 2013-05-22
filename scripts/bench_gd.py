@@ -18,6 +18,10 @@ from regioh import api_helper
 from gdapi.gdapi import GDAPI
 q = Queue()
 
+###########################################################
+# the following content depicts 100 connections for a person
+###########################################################
+master = 'cipherbox@cloudioh.com.cred.json'
 accounts = ['cipherbox@cloudioh.com.cred.json',
             'developer@cloudioh.com.cred.json',
             'apple110531@gmail.com.cred.json',
@@ -27,27 +31,19 @@ accounts = ['cipherbox@cloudioh.com.cred.json',
             'jjcipher@gmail.com.cred.json',
             'howard_chen@cloudioh.com.cred.json'
            ]
-#the following content depicts 100 connections for a person
+
 contact_file = 'connection_contacts'
 CONNECT_NUM = 0
-
-randstr = lambda x: u''.join(
-    random.choice(string.ascii_lowercase + string.digits) for x in xrange(x))
-
-local_data = threading.local()
+###########################################################
+# the following content depicts 100 connections for a person
+###########################################################
 
 def worker(folder_id, queue, ga, contacts):
     while True:
         signal = queue.get()
 
-        # 1. insert "contacts file" into GD
-        #folder_id = api_helper.create_folder(folder_id,
-        #                          ''.join([threading.currentThread().getName(),'-',
-        #                                   str(signal)
-        #                                  ])
-        #                         )
 
-        # 2. insert "contacts file" into GD
+        # 1. insert "contacts file" into GD
         _, temp_path = tempfile.mkstemp()
         with open(temp_path, "wb") as fout:
             json.dump(contacts, fout, indent=2)
@@ -61,6 +57,7 @@ def worker(folder_id, queue, ga, contacts):
                                           )
         os.unlink(temp_path)
 
+        # 2. update connections' files
         #for i in xrange(CONNECT_NUM):
         #    # 3. download file
         #    _, temp_path = tempfile.mkstemp()
@@ -70,10 +67,6 @@ def worker(folder_id, queue, ga, contacts):
         #        # 4. update file
         #        api_helper.update_file(file_id, temp_path)
 
-
-        #ga.create_file(folder_id, temp_path,
-        #            ''.join([threading.currentThread().getName(),
-        #                    '-', str(signal)]))
         queue.task_done()
 
 def main(argv):
@@ -84,26 +77,33 @@ def main(argv):
     logger.addHandler(logging.StreamHandler())
     logger.setLevel(logging.DEBUG)
 
-    # master accoutn create 'testreg' and share with other 'slaves'
-    #ga = GDAPI(os.path.join(os.path.dirname(PROJECT_ROOT), 'accounts',
-    #                        accounts[0]))
-    #folder_id = ga.create_folder(u'root', 'testreq')
+    #  load contacts content for running benchmark
     with open(os.path.join(os.path.dirname(PROJECT_ROOT),
                            'accounts',
                            contact_file),
               'rb') as f:
-        contacts = json.load(f,)
-        print contacts
+        contacts = json.load(f)
 
+    # master create shared folder
+    master_ga = GDAPI(os.path.join(os.path.dirname(PROJECT_ROOT),
+                                   'accounts',
+                                   master))
+    root_id = master_ga.create_folder(u'root', os.path.basename(__file__))
 
+    # initial worker threads for each account
     for account in accounts:
-        ga = GDAPI(os.path.join(os.path.dirname(PROJECT_ROOT), 'accounts', account))
-        folder_id = ga.create_folder(u'root', 'testreq')
+        tokens = account.split('.')
+        perm_id = master_ga.make_user_writer_for_file(root_id,
+                                                      ".".join([tokens[0], tokens[1]]))
+        ga = GDAPI(os.path.join(os.path.dirname(PROJECT_ROOT),
+                                'accounts',
+                                account))
         t = threading.Thread(target=worker,
-                             args=(folder_id, q, ga, contacts,))
+                             args=(root_id, q, ga, contacts,))
         t.setDaemon(True)
         t.start()
 
+    # dispatch jobs into Queue
     from timeit import default_timer as timer
     start = timer()
     for x in xrange(int(argv[1])):

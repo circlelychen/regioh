@@ -102,7 +102,13 @@ def get_oauth1_access_token(oauth_token, oauth_verifier):
     from flask import session
     client_id = LK_CLIENT_ID
     client_secret = LK_CLIENT_SECRET
-    oauth_secret = session[oauth_token]
+    try:
+        oauth_secret = session[oauth_token]
+    except:
+        app.logger.error('session[{0}] is None'.format(oauth_token,
+                                                       session.get(oauth_token,
+                                                                  None)))
+        raise KeyError
     session.pop(oauth_token, None)
 
     print "[check] client_id is {0}".format(client_id)
@@ -168,6 +174,22 @@ def verify_linkedin_status(linked_ids):
     return result
 
 def get_token_check(token):
+    ''' (str) -> dict
+
+    return Dict of (status, oauth, email) if token is valid
+
+    >> get_token_check(token)
+    {
+        "status": <str>,
+        "token": <str>,
+        "linkedin_id", <str>,
+        "oauth_token": <str>,
+        "oauth_token_secret": <str>,
+        "reg_data": {
+            "gmail": <str>
+            }
+    }
+    '''
     from boto.dynamodb.condition import EQ
     from boto.dynamodb.exceptions import DynamoDBKeyNotFoundError
     from default_config import MESSAGE
@@ -213,26 +235,6 @@ def get_token_check(token):
         result['reg_data'] = {"gmail": record['email']}
         app.logger.debug("get_token_check [SUCCESS]")
     return result
-
-#def get_db_data(linked_ids):
-#    from boto.dynamodb.condition import EQ
-#    tbl = get_dynamodb_table(AUTH)
-#    actives = tbl.scan(scan_filter = {
-#        "status": EQ('active')
-#    #})
-#    }, attributes_to_get = ['linkedin_id', 'status',
-#                           'pubkey', 'email', 'permid',
-#                            'pubkey_md5', 'contact_fid'
-#                           ])
-#    result = {}
-#
-#    for linked_id in linked_ids:
-#        result[linked_id] = {}
-#    for active in actives:
-#        active_id = active['linkedin_id']
-#        if active_id in linked_ids:
-#            result[active_id] = active
-#    return result
 
 def associate_db_data_v2(access_token, access_secret, linked_connections):
     result = {}

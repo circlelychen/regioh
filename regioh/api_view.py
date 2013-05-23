@@ -7,7 +7,6 @@ from flask import Flask, request, jsonify, redirect, url_for, render_template
 from .exceptions import abort
 from api_helper import fetch_public_key
 from api_helper import query_dynamodb_reg
-#from api_helper import get_db_data
 from api_helper import update_dynamodb
 from api_helper import verify_linkedin_status
 from api_helper import get_token_check
@@ -38,6 +37,23 @@ def _extract_request_data(request):
         security_code = jreq.get('identity_code', None)
     return user_email, pub_key, linked_data, token, pub_key_md5, permid, linkedin_id, security_code
 
+def _format_response(item):
+    ''' (dict) -> dict
+
+    return item deleting (oauth, token, reg_data)
+
+    >> _format_response(item)
+    {
+        "status": <str>,
+        "linkedin_id": <str>
+    }
+    '''
+    del item['oauth_token']
+    del item['oauth_token_secret']
+    del item['token']
+    del item['reg_data']
+    return item
+
 @app.route('/v2/register', methods=['POST'])
 def v2_register():
     from default_config import MESSAGE
@@ -47,20 +63,14 @@ def v2_register():
     item = get_token_check(token)
     if item['status'] == MESSAGE['success']:
         from api_helper import register_email
-        linkedin_id = item['linkedin_id']
-        register_email(linkedin_id, user_email, pubkey, token, item)
+        register_email(item['linkedin_id'], user_email,
+                       pubkey, token, item)
 
+        item = _format_response(item)
         item['pubkey'] = pubkey
-        del item['oauth_token']
-        del item['oauth_token_secret']
-        del item['token']
-        del item['reg_data']
         return jsonify(code=200, result=item, status=item)
     else:
-        del item['oauth_token']
-        del item['oauth_token_secret']
-        del item['token']
-        del item['reg_data']
+        item = _format_response(item)
         return jsonify(code=200, result=item, status=item)
 
 #@app.route('/v1/check', methods=['POST'])

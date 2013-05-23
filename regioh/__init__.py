@@ -10,11 +10,41 @@ app.secret_key = '\xe1\r#\x99\xfb\x10T\x11\x07\x8a+\x00\xbe\xe7$\xa1\x86\x05\x97
 def setup_logging():
     if not app.debug and not app.config['TESTING']:
         # In production mode, add log handler to sys.stderr.
-        import logging
-        import logging.config
         try:
-            logging.config.fileConfig('logger.conf')
-            app._logger = logging.getLogger(__name__)
+            #SES Handler
+            from SESHandler import SESHandler
+            import logging
+            from default_config import AWS_ACCESS_KEY
+            from default_config import AWS_SECRET_ACCESS_KEY
+            from default_config import AWS_SES_SENDER
+            formatter = logging.Formatter('''
+                Message type:       %(levelname)s
+                Location:           %(pathname)s:%(lineno)d
+                Module:             %(module)s
+                Function:           %(funcName)s
+                Time:               %(asctime)s
+
+                Messageu
+
+                %(message)s
+                            ''')
+            handler = SESHandler(AWS_ACCESS_KEY, AWS_SECRET_ACCESS_KEY, AWS_SES_SENDER,
+                                'cipherbox@cloudioh.com', 'REGIOH Failed')
+            handler.setFormatter(formatter)
+            handler.setLevel(logging.ERROR)
+            app.logger.addHandler(handler)
+
+            #Console Handler
+            handler = logging.StreamHandler()
+            formatter = logging.Formatter('%(asctime)s %(levelname)s: '
+                                          '%(message)s '
+                                          '[in %(module)s :%(lineno)d]')
+            handler.setFormatter(formatter)
+            handler.setLevel(logging.DEBUG)
+            app.logger.addHandler(handler)
+
+            # set level of app.logger
+            app.logger.setLevel(logging.DEBUG)
             app.logger.info("Production mode")
         except:
             app.logger.debug("Replace logger error")
@@ -25,3 +55,4 @@ setup_logging()
 
 import regioh.api_view
 import regioh.views
+

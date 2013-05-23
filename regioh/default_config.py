@@ -5,6 +5,7 @@ PASSWORD = 'default'
 PROJECT_ROOT = os.path.dirname(__file__)
 
 #configuration
+DEBUG=True
 SECRET_KEY = os.environ.get("SECRET_KEY", '{{SECRET_KEY}}')
 
 AWS_ACCESS_KEY = os.environ.get("AWS_ACCESS_KEY", None)
@@ -57,6 +58,11 @@ MESSAGE = {'success': 'SUCCESS',
            'non_identical': 'NON_IDENTICAL',
           }
 
+################################################
+# initial 'regioh' shared folder for accounts
+# for uploading/updating files
+################################################
+MASTER = 'cipherbox@cloudioh.com.cred.json'
 ACCOUNTS = ['cipherbox@cloudioh.com.cred.json',
             'developer@cloudioh.com.cred.json',
             'apple110531@gmail.com.cred.json',
@@ -64,4 +70,5 @@ ACCOUNTS = ['cipherbox@cloudioh.com.cred.json',
             'cherry110531@gmail.com.cred.json',
             'justin_jan@cloudioh.com.cred.json',
             'jjcipher@gmail.com.cred.json',
-            'howard_chen@cloudioh.com.cred.json']
+            'howard_chen@cloudioh.com.cred.json'
+           ]

@@ -111,11 +111,11 @@ def get_oauth1_access_token(oauth_token, oauth_verifier):
         raise KeyError
     session.pop(oauth_token, None)
 
-    print "[check] client_id is {0}".format(client_id)
-    print "[check] client_secret is {0}".format(client_secret)
-    print "[check] oauth_token is {0}".format(oauth_token)
-    print "[check] oauth_secret is {0}".format(oauth_secret)
-    print "[check] oauth_verifier is {0}".format(oauth_verifier)
+    app.logger.debug("[check] client_id is {0}".format(client_id))
+    app.logger.debug("[check] client_secret is {0}".format(client_secret))
+    app.logger.debug("[check] oauth_token is {0}".format(oauth_token))
+    app.logger.debug("[check] oauth_secret is {0}".format(oauth_secret))
+    app.logger.debug("[check] oauth_verifier is {0}".format(oauth_verifier))
 
     http_code, http_content, access_token, access_secret, expires_in = _access_v1_token(client_id,
                                                                                         client_secret,
@@ -140,14 +140,14 @@ def get_oauth1_request_url():
     from flask import session
     client_id = LK_CLIENT_ID
     client_secret = LK_CLIENT_SECRET
-    print "[check] client_id is {0}".format(client_id)
-    print "[check] client_secret is {0}".format(client_secret)
+    app.logger.debug("[check] client_id is {0}".format(client_id))
+    app.logger.debug("[check] client_secret is {0}".format(client_secret))
 
     http_code, http_content, oauth_token, oauth_secret = _request_v1_token(client_id, client_secret)
 
     # cache oauth_secret into session
-    print "[check] client_id is {0}".format(oauth_token)
-    print "[check] client_secret is {0}".format(oauth_secret)
+    app.logger.debug("[check] client_id is {0}".format(oauth_token))
+    app.logger.debug("[check] client_secret is {0}".format(oauth_secret))
     session[oauth_token] = oauth_secret
 
     authorize_url ='https://api.linkedin.com/uas/oauth/authorize'
@@ -355,7 +355,7 @@ def addto_dynamodb_reg(linked_id, pubkey='N/A', token='N/A',
             }
             )
     except Exception as e:
-        print e
+        app.logger.error(e)
     item.put()
     return item
 
@@ -384,7 +384,7 @@ def addto_dynamodb_reg_v2(linked_id, pubkey='N/A', token='N/A',
             }
             )
     except Exception as e:
-        print e
+        app.logger.error(e)
     item.put()
     return item
 
@@ -415,7 +415,7 @@ def addto_dynamodb_signup(linked_id, token='N/A', oauth1_data='N/A',
             }
             )
     except Exception as e:
-        print e
+        app.logger.error(e)
     item.put()
     return item
 

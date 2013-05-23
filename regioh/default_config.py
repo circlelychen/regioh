@@ -5,7 +5,6 @@ PASSWORD = 'default'
 PROJECT_ROOT = os.path.dirname(__file__)
 
 #configuration
-DEBUG=True
 SECRET_KEY = os.environ.get("SECRET_KEY", '{{SECRET_KEY}}')
 
 AWS_ACCESS_KEY = os.environ.get("AWS_ACCESS_KEY", None)

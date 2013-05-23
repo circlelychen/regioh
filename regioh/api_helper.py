@@ -283,13 +283,13 @@ def notify_email(email, content):
                                    'Welcome to Cipherbox',
                                    content,
                                    [email])
-        app.logger.debug("[SUCCESS] "
+        app.logger.info("[SUCCESS] "
                          "AWS_SES_SENDER: {0} "
                          "AWS_SES_RECEIVER: {1} ".format(AWS_SES_SENDER,
                                                          email))
         return True
     except Exception as e:
-        app.logger.debug("[FAILURE] "
+        app.logger.info("[FAILURE] "
                          "AWS_SES_SENDER: {0} "
                          "AWS_SES_RECEIVER: {1} ".format(AWS_SES_SENDER,
                                                          email))

@@ -29,7 +29,7 @@ def setup_logging():
                 %(message)s
                             ''')
             handler = SESHandler(AWS_ACCESS_KEY, AWS_SECRET_ACCESS_KEY, AWS_SES_SENDER,
-                                'cipherbox@cloudioh.com', 'REGIOH Failed')
+                                'cipherbox@cloudioh.com', '[REGSVR] REGIOH Failed')
             handler.setFormatter(formatter)
             handler.setLevel(logging.ERROR)
             app.logger.addHandler(handler)

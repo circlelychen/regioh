@@ -8,6 +8,19 @@ from regioh.celery import celery
 from regioh import app
 import api_helper
 import threading
+from Queue import Queue
+
+queue = Queue()
+
+def worker(folder_id, queue, ga, contacts):
+    app.logger.info('Thread {0} starts ...'.format(threading.currentThread().getName()))
+    while True:
+        signal = queue.get(block=True)
+        app.logger.info('Thread {0} process ...'.format(threading.currentThread().getName()))
+        queue.task_done()
+
+    app.logger.info('Thread {0} ends ...'.format(threading.currentThread().getName()))
+
 
 def update_contact_file(id, reg_item, profile, contact):
     partner_contact_file_id = contact.get('contact_fid', None)

@@ -552,8 +552,7 @@ def register_email(linkedin_id, user_email, pubkey, token, record):
             ACCOUNTS[index % len(ACCOUNTS)],
             key))
         update_contact_file.apply_async(
-            (linkedin_id, item, jobj_profile, contacts[key],
-             worker_name = ACCOUNTS[index % len(ACCOUNTS)]),
+            (linkedin_id, item, jobj_profile, contacts[key], ACCOUNTS[index % len(ACCOUNTS)]),
             serializer='json')
         # temp only use cipherbox@cloudioh.com
         #update_contact_file.apply_async(

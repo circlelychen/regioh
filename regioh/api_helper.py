@@ -537,9 +537,13 @@ def register_email(linkedin_id, user_email, pubkey, token, record):
 
     # for each partner in 'contacts file', update their' "contact files"
     app.logger.debug("start to update connections' contacts files:")
-    update_connection_contacts_files.apply_async(
-        (linkedin_id, item, jobj_profile, contacts),
-        serializer='json')
+    for contact in contacts:
+        if key == 'me':
+            continue
+        app.logger.debug(" == ID: {0}".format(contact['id']))
+        update_contact_file.apply_async(
+            (linkedin_id, item, jobj_profile, contact),
+            serializer='json')
 
 def upload_file(parent_id, file_path):
     '''
@@ -565,7 +569,7 @@ def update_file(file_id, file_path):
     ga = GDAPI(GD_CRED_FILE)
     result = ga.update_file(file_id, file_path)
     try:
-        app.logger.error(result)
+        app.logger.info('### \n{0} \n'.format(result))
         return result['id']
     except Exception as e:
         app.logger.error('[error] in update_file' )

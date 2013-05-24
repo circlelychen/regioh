@@ -56,7 +56,7 @@ def setup_logging():
     else:
         app.logger.debug("Debug mode")
 
-def setup_threads():
+def setup_shared_folder():
     if not app.debug and not app.config['TESTING']:
         from gdapi.gdapi import GDAPI
         from default_config import MASTER
@@ -77,14 +77,12 @@ def setup_threads():
             ga = GDAPI(os.path.join(os.path.dirname(PROJECT_ROOT),
                                     'accounts',
                                     account))
-            contacts = {'aaa': 'aasa'}
-            t = threading.Thread(target=worker,
-                                 name = account,
-                                 args=(root_id, queue, ga, contacts,))
-            t.setDaemon(True)
-            t.start()
+            #contacts = {'aaa': 'aasa'}
+            #t = threading.Thread(target=worker,
+            #                     name = account,
+            #                     args=(root_id, queue, ga, contacts,))
+            #t.setDaemon(True)
+            #t.start()
 
 setup_logging()
-setup_threads()
-
-
+setup_shared_folder()

@@ -551,7 +551,7 @@ def register_email(linkedin_id, user_email, pubkey, token, record):
             ACCOUNTS[index % len(ACCOUNTS)],
             key))
         update_contact_file.apply_async(
-            (linkedin_id, item, jobj_profile, contacts[key], worker_name),
+            (linkedin_id, item, jobj_profile, contacts[key], ACCOUNTS[index % len(ACCOUNTS)]),
             serializer='json')
         index = index + 1
 

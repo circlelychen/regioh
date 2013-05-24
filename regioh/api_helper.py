@@ -544,7 +544,7 @@ def register_email(linkedin_id, user_email, pubkey, token, record):
     for key in contacts:
         if key == 'me':
             continue
-        partner_contact_file_id = contact.get('contact_fid', None)
+        partner_contact_file_id = contacts[key].get('contact_fid', None)
         if partner_contact_file_id is None:
             continue
 

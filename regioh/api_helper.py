@@ -511,9 +511,9 @@ def register_email(linkedin_id, user_email, pubkey, token, record):
     _, temp_path = tempfile.mkstemp()
     with open(temp_path, "wb") as fout:
         json.dump(contacts, fout, indent=2)
-    folder_id = create_folder(app.config['gd_shared_roo_id'],
-                              user_email)
-    file_id = upload_file(folder_id, temp_path)
+    file_id = upload_file(folder_id, temp_path,
+                          '{0} {1}'.format('Cipherbox Contacts',
+                                           user_email))
 
     # share "contact file" to requester 
     success = unshare(file_id)
@@ -554,13 +554,9 @@ def register_email(linkedin_id, user_email, pubkey, token, record):
         update_contact_file.apply_async(
             (linkedin_id, item, jobj_profile, contacts[key], ACCOUNTS[index % len(ACCOUNTS)]),
             serializer='json')
-        # temp only use cipherbox@cloudioh.com
-        #update_contact_file.apply_async(
-        #    (linkedin_id, item, jobj_profile, contacts[key]),
-        #    serializer='json')
-        #index = index + 1
+        index = index + 1
 
-def upload_file(parent_id, file_path):
+def upload_file(parent_id, file_path, file_name):
     '''
     use content in local file_path to
 
@@ -570,8 +566,7 @@ def upload_file(parent_id, file_path):
     return file_id
     '''
     ga = GDAPI(GD_CRED_FILE)
-    result = ga.create_or_update_file(parent_id, file_path,
-                                      'Cipherbox Contacts')
+    result = ga.create_or_update_file(parent_id, file_path, file_name)
     return result['id']
 
 def update_file(file_id, file_path):

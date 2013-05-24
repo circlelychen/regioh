@@ -26,7 +26,7 @@ def update_contact_file(id, reg_item, profile, contact,
         _, temp_path = tempfile.mkstemp()
         success = ga.download_file(partner_contact_file_id, temp_path)
     except Exception as e:
-        app.logger.error("[FAIL] {0} download {1} \n "
+        app.logger.error("[FAIL] {0} download {1}, "
                          "exception: {2}".format(worker_name,
                                                  contact.get('email',
                                                              None),
@@ -52,7 +52,9 @@ def update_contact_file(id, reg_item, profile, contact,
             app.logger.info('### \n{0} \n'.format(result))
             return result['id']
         except Exception as e:
-            app.logger.error('[error] in update_file' )
+            app.logger.error("[FAIL] {0} update {1}".format(workder_name,
+                                                            contact.get('email',
+                                                                       None)))
             app.logger.error(result)
 
         success = ga.unshare(partner_contact_file_id)

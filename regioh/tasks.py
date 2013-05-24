@@ -16,7 +16,7 @@ def update_contact_file(id, reg_item, profile, contact,
     from default_config import PROJECT_ROOT
     partner_contact_file_id = contact.get('contact_fid', None)
     if partner_contact_file_id is None:
-        return None
+        return False
     ga = GDAPI(os.path.join(os.path.dirname(PROJECT_ROOT),
                             'accounts',
                             worker_name))
@@ -29,9 +29,9 @@ def update_contact_file(id, reg_item, profile, contact,
         app.logger.error("[FAIL] {0} download {1} \n "
                          "exception: {2}".format(worker_name,
                                                  contact.get('email',
-                                                             none),
+                                                             None),
                                                  repr(e)))
-        return None
+        return False
 
     with open(temp_path, "rb") as fin:
         jobj = json.load(fin)

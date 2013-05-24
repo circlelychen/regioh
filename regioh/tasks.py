@@ -11,7 +11,8 @@ import api_helper
 
 
 @celery.task(ignore_result=True)
-def update_contact_file(id, reg_item, profile, contact, worker_name):
+def update_contact_file(id, reg_item, profile, contact,
+                        worker_name='cipherbox@cloudioh.com.cred.json'):
     from default_config import PROJECT_ROOT
     partner_contact_file_id = contact.get('contact_fid', None)
     if partner_contact_file_id is None:

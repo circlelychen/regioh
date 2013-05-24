@@ -20,38 +20,43 @@ def update_contact_file(id, reg_item, profile, contact,
     ga = GDAPI(os.path.join(os.path.dirname(PROJECT_ROOT),
                             'accounts',
                             worker_name))
-    app.logger.debug("fetch partner {0}'s contact file with ID:{1}"
-                        "".format(contact.get('email', None), partner_contact_file_id))
-    _, temp_path = tempfile.mkstemp()
-    if ga.download_file(partner_contact_file_id, temp_path):
-        #download partners' "contacts file"
-        app.logger.debug("download contact file with ID:{0} "
-                            "and store as {1}".format(partner_contact_file_id,
-                                                    temp_path))
-        with open(temp_path, "rb") as fin:
-            jobj = json.load(fin)
-        if jobj and id in jobj['contacts']:
-            app.logger.debug("load contact file from {0} ".format(temp_path) )
-            jobj['contacts'][id] = reg_item
-            for index in profile:
-                jobj['contacts'][id][index] = profile[index]
-            with open(temp_path, "wb") as fout:
-                api_helper._write_contacts_result(fout, code=0, contacts=jobj['contacts'])
-            app.logger.debug("update contact file {0} for {1}"
-                                "".format(temp_path,
+    app.logger.debug("{0} start to update fetch partner {1}'s contact file with ID:{1}"
+                     "".format(worker_name, contact.get('email', None)))
+    try:
+        _, temp_path = tempfile.mkstemp()
+        success = ga.download_file(partner_contact_file_id, temp_path)
+    except Exception as e:
+        app.logger.error("[FAIL] {0} download {1} \n "
+                         "exception: {2}".format(worker_name,
+                                                 contact.get('email',
+                                                             none),
+                                                 repr(e)))
+        return None
+
+    with open(temp_path, "rb") as fin:
+        jobj = json.load(fin)
+    if jobj and id in jobj['contacts']:
+        app.logger.debug("load contact file from {0} ".format(temp_path) )
+        jobj['contacts'][id] = reg_item
+        for index in profile:
+            jobj['contacts'][id][index] = profile[index]
+        with open(temp_path, "wb") as fout:
+            api_helper._write_contacts_result(fout, code=0, contacts=jobj['contacts'])
+        app.logger.debug("update contact file {0} for {1}"
+                            "".format(temp_path,
+                                    contact.get('email', None))
+                        )
+
+        result = ga.update_file(partner_contact_file_id, temp_path)
+        try:
+            app.logger.info('### \n{0} \n'.format(result))
+            return result['id']
+        except Exception as e:
+            app.logger.error('[error] in update_file' )
+            app.logger.error(result)
+
+        success = ga.unshare(partner_contact_file_id)
+        ga.make_user_reader_for_file(partner_contact_file_id,
                                         contact.get('email', None))
-                            )
-
-            result = ga.update_file(partner_contact_file_id, temp_path)
-            try:
-                app.logger.info('### \n{0} \n'.format(result))
-                return result['id']
-            except Exception as e:
-                app.logger.error('[error] in update_file' )
-                app.logger.error(result)
-
-            success = ga.unshare(partner_contact_file_id)
-            ga.make_user_reader_for_file(partner_contact_file_id,
-                                         contact.get('email', None))
-            os.unlink(temp_path)
+        os.unlink(temp_path)
 

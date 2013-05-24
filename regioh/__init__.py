@@ -62,8 +62,6 @@ def setup_shared_folder():
         from default_config import MASTER
         from default_config import ACCOUNTS
         from default_config import PROJECT_ROOT
-        from tasks import worker
-        from tasks import queue
         # master create shared folder
         master_ga = GDAPI(os.path.join(os.path.dirname(PROJECT_ROOT),
                                         'accounts',

@@ -63,7 +63,7 @@ MESSAGE = {'success': 'SUCCESS',
 ################################################
 MASTER = 'cipherbox@cloudioh.com.cred.json'
 ACCOUNTS = ['developer@cloudioh.com.cred.json',
-            'cipherbox@cloudioh.com.cred.json'
+            'cipherbox@cloudioh.com.cred.json',
             'howard_chen@cloudioh.com.cred.json'
             #'apple110531@gmail.com.cred.json',
             #'banana110531@gmail.com.cred.json',

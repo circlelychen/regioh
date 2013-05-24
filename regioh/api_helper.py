@@ -511,7 +511,7 @@ def register_email(linkedin_id, user_email, pubkey, token, record):
     _, temp_path = tempfile.mkstemp()
     with open(temp_path, "wb") as fout:
         json.dump(contacts, fout, indent=2)
-    file_id = upload_file(folder_id, temp_path,
+    file_id = upload_file(app.config['gd_shared_roo_id'], temp_path,
                           '{0} {1}'.format('Cipherbox Contacts',
                                            user_email))
 

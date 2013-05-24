@@ -6,14 +6,19 @@ import os
 from regioh.celery import celery
 
 from regioh import app
+from gdapi.gdapi import GDAPI
 import api_helper
 
 
 @celery.task(ignore_result=True)
-def update_contact_file(id, reg_item, profile, contact, ga):
+def update_contact_file(id, reg_item, profile, contact, worker_name):
+    from default_config import PROJECT_ROOT
     partner_contact_file_id = contact.get('contact_fid', None)
     if partner_contact_file_id is None:
         return None
+    ga = GDAPI(os.path.join(os.path.dirname(PROJECT_ROOT),
+                            'accounts',
+                            worker_name))
     app.logger.debug("fetch partner {0}'s contact file with ID:{1}"
                         "".format(contact.get('email', None), partner_contact_file_id))
     _, temp_path = tempfile.mkstemp()

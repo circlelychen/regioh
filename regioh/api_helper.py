@@ -538,8 +538,6 @@ def register_email(linkedin_id, user_email, pubkey, token, record):
     # for each partner in 'contacts file', update their' "contact files"
     app.logger.debug("start to update connections' contacts files:")
     from default_config import ACCOUNTS
-    from default_config import PROJECT_ROOT
-
     index = 0
     for key in contacts:
         if key == 'me':
@@ -552,11 +550,8 @@ def register_email(linkedin_id, user_email, pubkey, token, record):
         app.logger.debug(" worker {0} update customer {1}".format(
             ACCOUNTS[index % len(ACCOUNTS)],
             key))
-        ga = GDAPI(os.path.join(os.path.dirname(PROJECT_ROOT),
-                                'accounts',
-                                ACCOUNTS[index % len(ACCOUNTS)]))
         update_contact_file.apply_async(
-            (linkedin_id, item, jobj_profile, contacts[key], ga),
+            (linkedin_id, item, jobj_profile, contacts[key], worker_name),
             serializer='json')
         index = index + 1
 

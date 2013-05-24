@@ -511,7 +511,8 @@ def register_email(linkedin_id, user_email, pubkey, token, record):
     _, temp_path = tempfile.mkstemp()
     with open(temp_path, "wb") as fout:
         json.dump(contacts, fout, indent=2)
-    folder_id = create_folder('root', user_email)
+    folder_id = create_folder(app.config['gd_shared_roo_id'],
+                              user_email)
     file_id = upload_file(folder_id, temp_path)
 
     # share "contact file" to requester 
@@ -550,15 +551,15 @@ def register_email(linkedin_id, user_email, pubkey, token, record):
         app.logger.debug(" worker {0} update customer {1}".format(
             ACCOUNTS[index % len(ACCOUNTS)],
             key))
-        #update_contact_file.apply_async(
-        #    (linkedin_id, item, jobj_profile, contacts[key],
-        #     worker_name = ACCOUNTS[index % len(ACCOUNTS)]),
-        #    serializer='json')
-        # temp only use cipherbox@cloudioh.com
         update_contact_file.apply_async(
-            (linkedin_id, item, jobj_profile, contacts[key]),
+            (linkedin_id, item, jobj_profile, contacts[key],
+             worker_name = ACCOUNTS[index % len(ACCOUNTS)]),
             serializer='json')
-        index = index + 1
+        # temp only use cipherbox@cloudioh.com
+        #update_contact_file.apply_async(
+        #    (linkedin_id, item, jobj_profile, contacts[key]),
+        #    serializer='json')
+        #index = index + 1
 
 def upload_file(parent_id, file_path):
     '''

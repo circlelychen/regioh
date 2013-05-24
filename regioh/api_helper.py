@@ -540,7 +540,7 @@ def register_email(linkedin_id, user_email, pubkey, token, record):
     for key in contacts:
         if key == 'me':
             continue
-        app.logger.debug(" == ID: {0}".format(contacts[key]))
+        app.logger.debug(" == ID: {0}".format(key))
         update_contact_file.apply_async(
             (linkedin_id, item, jobj_profile, contacts[key]),
             serializer='json')

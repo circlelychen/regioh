@@ -538,7 +538,7 @@ def register_email(linkedin_id, user_email, pubkey, token, record):
     # for each partner in 'contacts file', update their' "contact files"
     app.logger.debug("start to update connections' contacts files:")
     for contact in contacts:
-        if key == 'me':
+        if contact == 'me':
             continue
         app.logger.debug(" == ID: {0}".format(contact['id']))
         update_contact_file.apply_async(

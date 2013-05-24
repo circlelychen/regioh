@@ -47,14 +47,15 @@ def update_contact_file(id, reg_item, profile, contact,
                                     contact.get('email', None))
                         )
 
-        result = ga.update_file(partner_contact_file_id, temp_path)
         try:
-            app.logger.info('### \n{0} \n'.format(result))
-            return result['id']
+            result = ga.update_file(partner_contact_file_id, temp_path)
         except Exception as e:
-            app.logger.error("[FAIL] {0} update {1}".format(workder_name,
-                                                            contact.get('email',
-                                                                       None)))
+            app.logger.error("[FAIL] {0} update {1}, "
+                             "exception: {2}, gdapi.update_file "
+                             "response: {3}".format(workder_name,
+                                                    contact.get('email', None),
+                                                    repr(e),
+                                                    result))
             app.logger.error(result)
 
         success = ga.unshare(partner_contact_file_id)

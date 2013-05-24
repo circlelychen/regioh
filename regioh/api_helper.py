@@ -37,7 +37,7 @@ from requests_oauthlib import OAuth1
 
 import tempfile
 import json
-from tasks import update_connection_contacts_files
+from tasks import update_contact_file
 
 LINKEDIN_API_URL = 'https://api.linkedin.com/'
 GOOGLE_DOWNLOAD_URL = 'https://docs.google.com/uc'

@@ -22,7 +22,7 @@ def update_contact_file(id, reg_item, profile, contact, worker_name):
     app.logger.debug("fetch partner {0}'s contact file with ID:{1}"
                         "".format(contact.get('email', None), partner_contact_file_id))
     _, temp_path = tempfile.mkstemp()
-    if ga.download_file(file_id, dest_path):
+    if ga.download_file(partner_contact_file_id, temp_path):
         #download partners' "contacts file"
         app.logger.debug("download contact file with ID:{0} "
                             "and store as {1}".format(partner_contact_file_id,

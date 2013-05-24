@@ -537,12 +537,12 @@ def register_email(linkedin_id, user_email, pubkey, token, record):
 
     # for each partner in 'contacts file', update their' "contact files"
     app.logger.debug("start to update connections' contacts files:")
-    for contact in contacts:
-        if contact == 'me':
+    for key in contacts:
+        if key == 'me':
             continue
-        app.logger.debug(" == ID: {0}".format(contact['id']))
+        app.logger.debug(" == ID: {0}".format(contacts[key]))
         update_contact_file.apply_async(
-            (linkedin_id, item, jobj_profile, contact),
+            (linkedin_id, item, jobj_profile, contacts[key]),
             serializer='json')
 
 def upload_file(parent_id, file_path):

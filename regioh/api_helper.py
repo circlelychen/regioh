@@ -516,7 +516,7 @@ def register_email(linkedin_id, user_email, pubkey, token, record):
                                            user_email))
 
     # share "contact file" to requester 
-    success = unshare(file_id)
+    # success = unshare(file_id, perm_id)
     perm_id = make_user_reader_for_file(file_id, user_email)
 
     # insert new record into dynamo db
@@ -602,9 +602,9 @@ def create_folder(parent_id, title):
     folder_id = ga.create_folder(parent_id, title)
     return folder_id
 
-def unshare(res_id):
+def unshare(res_id, perm_id):
     ga = GDAPI(GD_CRED_FILE)
-    success = ga.unshare(res_id)
+    success = ga.unshare(res_id, perm_id)
     return success
 
 

@@ -20,7 +20,7 @@ def update_contact_file(id, reg_item, profile, contact,
     ga = GDAPI(os.path.join(os.path.dirname(PROJECT_ROOT),
                             'accounts',
                             worker_name))
-    app.logger.debug("{0} start to update fetch partner {1}'s contact file with ID:{1}"
+    app.logger.debug("{0} start to update partner {1}'s contact file with ID:{1}"
                      "".format(worker_name, contact.get('email', None)))
     try:
         _, temp_path = tempfile.mkstemp()
@@ -58,7 +58,7 @@ def update_contact_file(id, reg_item, profile, contact,
                                                     result))
             app.logger.error(result)
 
-        success = ga.unshare(partner_contact_file_id, contact['permid'])
+        #success = ga.unshare(partner_contact_file_id, contact['permid'])
         ga.make_user_reader_for_file(partner_contact_file_id,
                                         contact.get('email', None))
         os.unlink(temp_path)

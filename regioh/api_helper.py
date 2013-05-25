@@ -22,7 +22,7 @@ from default_config import TOKEN_LIFE_TIME
 
 # Dynamodb tables definition 
 from default_config import SIGNUP
-from default_config import V2_SIGNUP
+#from default_config import V2_SIGNUP
 from default_config import AUTH
 from default_config import v2_AUTH
 
@@ -193,7 +193,7 @@ def get_token_check(token):
     from boto.dynamodb.condition import EQ
     from boto.dynamodb.exceptions import DynamoDBKeyNotFoundError
     from default_config import MESSAGE
-    tbl = get_dynamodb_table(V2_SIGNUP, hash_key='token')
+    tbl = get_dynamodb_table(app.config['V2_SIGNUP'], hash_key='token')
 
     result = {"status": "no_linkedin_account",
               "token": "",
@@ -392,7 +392,7 @@ def addto_dynamodb_signup(linked_id, token='N/A', oauth1_data='N/A',
                           oauth_token='N/A', oauth_token_secret='N/A',
                           oauth_expires_in='N/A'):
     """Return status, record"""
-    tbl = get_dynamodb_table(V2_SIGNUP, hash_key='token')
+    tbl = get_dynamodb_table(app.config['V2_SIGNUP'], hash_key='token')
     if tbl.has_item(hash_key=token):
         item = tbl.get_item(
             hash_key=token,

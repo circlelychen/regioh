@@ -87,7 +87,7 @@ def signup(status):
             item.get('expires_in_utc', None),
             "%Y-%m-%d %H:%M")
         title = u"Hi {0} {1},".format(first_name, last_name)
-        content = "Below please find your one-time security code for Cipherbox setup." 
+        content = "Below please find your one-time security code for Cipherbox setup."
         footer = "Yours Securely,\n-The Cipherbox Team"
         signature = "Cloudioh Inc.\nwww.cloudioh.com"
         success = notify_email(user_email, "\n\n".join([title, content,

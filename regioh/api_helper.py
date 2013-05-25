@@ -362,7 +362,7 @@ def addto_dynamodb_reg(linked_id, pubkey='N/A', token='N/A',
 def addto_dynamodb_reg_v2(linked_id, pubkey='N/A', token='N/A',
                           pubkey_md5='N/A', perm_id='N/A',
                           email='N/A', status='inactive',
-                          contact_fid='N/A'):
+                          contact_fid='N/A', contact_fid_new='N/A'):
     """Return status, record"""
     tbl = get_dynamodb_table(v2_AUTH)
     if tbl.has_item(hash_key=linked_id):
@@ -381,6 +381,7 @@ def addto_dynamodb_reg_v2(linked_id, pubkey='N/A', token='N/A',
                 'token': token,
                 'status': status,
                 'contact_fid': contact_fid,
+                'contact_fid_new': contact_fid_new,
             }
             )
     except Exception as e:
@@ -513,17 +514,22 @@ def register_email(linkedin_id, user_email, pubkey, token, record):
         json.dump(contacts, fout, indent=2)
     folder_id = create_folder('root', user_email)
     file_id = upload_file(folder_id, temp_path)
+    file_id_new = upload_file_and_rename(folder_id, temp_path,
+                                         "Cipherbox Contacts "
+                                         "{0}".format(user_email))
 
     # share "contact file" to requester 
-    success = unshare(file_id)
+    #success = unshare(file_id)
     perm_id = make_user_reader_for_file(file_id, user_email)
+    perm_id_new = make_user_reader_for_file(file_id_new, user_email)
 
     # insert new record into dynamo db
     app.logger.debug("start to insert db data:")
     item = addto_dynamodb_reg_v2(linkedin_id, pubkey=pubkey,
                                  token=token, perm_id=perm_id,
                                  email=user_email, status='active',
-                                 contact_fid=file_id)
+                                 contact_fid=file_id,
+                                 contact_fid_new=file_id_new)
 
     app.logger.debug("start to insert contacts into GD again:")
     #add myself as one record in contacts
@@ -533,10 +539,12 @@ def register_email(linkedin_id, user_email, pubkey, token, record):
     with open(temp_path, "wb") as fout:
         _write_contacts_result(fout, code=0, contacts=contacts)
     update_file(file_id, temp_path)
+    update_file(file_id_new, temp_path)
     os.unlink(temp_path)
 
     # for each partner in 'contacts file', update their' "contact files"
     app.logger.debug("start to update connections' contacts files:")
+    #update_connection_contacts_files(linkedin_id, item, jobj_profile, contacts)
     update_connection_contacts_files.apply_async(
         (linkedin_id, item, jobj_profile, contacts),
         serializer='json')
@@ -555,6 +563,20 @@ def upload_file(parent_id, file_path):
                                       'Cipherbox Contacts')
     return result['id']
 
+def upload_file_and_rename(parent_id, file_path, file_name):
+    '''
+    use content in local file_path to
+
+    1. create file if there is no file
+    2. update file if there is a file existing
+
+    return file_id
+    '''
+    ga = GDAPI(GD_CRED_FILE)
+    result = ga.create_or_update_file(parent_id, file_path,
+                                      file_name)
+    return result['id']
+
 def update_file(file_id, file_path):
     '''
     use content in local file_path to overwrite remote
@@ -565,7 +587,7 @@ def update_file(file_id, file_path):
     ga = GDAPI(GD_CRED_FILE)
     result = ga.update_file(file_id, file_path)
     try:
-        app.logger.error(result)
+        #app.logger.error(result)
         return result['id']
     except Exception as e:
         app.logger.error('[error] in update_file' )

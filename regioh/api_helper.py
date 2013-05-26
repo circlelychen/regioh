@@ -243,7 +243,7 @@ def associate_db_data_v2(access_token, access_secret, linked_connections):
         result[linkedin_item['id']] = linkedin_item
         result[linkedin_item['id']]['status'] = 'inactive'
         ids.append(linkedin_item['id'])
-    tbl = get_dynamodb_table(v2_AUTH)
+    tbl = get_dynamodb_table(app.config['V2_AUTH'])
     actives = tbl.batch_get_item(
         ids,
         attributes_to_get = ['linkedin_id', 'status',
@@ -364,7 +364,7 @@ def addto_dynamodb_reg_v2(linked_id, pubkey='N/A', token='N/A',
                           email='N/A', status='inactive',
                           contact_fid='N/A'):
     """Return status, record"""
-    tbl = get_dynamodb_table(v2_AUTH)
+    tbl = get_dynamodb_table(app.config['V2_AUTH'])
     if tbl.has_item(hash_key=linked_id):
         item = tbl.get_item(
             hash_key=linked_id,

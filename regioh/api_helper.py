@@ -22,7 +22,7 @@ from default_config import TOKEN_LIFE_TIME
 
 # Dynamodb tables definition 
 from default_config import SIGNUP
-#from default_config import V2_SIGNUP
+from default_config import V2_SIGNUP
 from default_config import AUTH
 from default_config import v2_AUTH
 
@@ -193,7 +193,10 @@ def get_token_check(token):
     from boto.dynamodb.condition import EQ
     from boto.dynamodb.exceptions import DynamoDBKeyNotFoundError
     from default_config import MESSAGE
-    tbl = get_dynamodb_table(app.config['V2_SIGNUP'], hash_key='token')
+    if app.config['TESTING']:
+        tbl = get_dynamodb_table(app.config['V2_SIGNUP'], hash_key='token')
+    else:
+        tbl = get_dynamodb_table(V2_SIGNUP, hash_key='token')
 
     result = {"status": "no_linkedin_account",
               "token": "",
@@ -243,7 +246,11 @@ def associate_db_data_v2(access_token, access_secret, linked_connections):
         result[linkedin_item['id']] = linkedin_item
         result[linkedin_item['id']]['status'] = 'inactive'
         ids.append(linkedin_item['id'])
-    tbl = get_dynamodb_table(app.config['V2_AUTH'])
+    if app.config['TESTING']:
+        tbl = get_dynamodb_table(app.config['V2_AUTH'])
+    else:
+        tbl = get_dynamodb_table(V2_AUTH)
+
     actives = tbl.batch_get_item(
         ids,
         attributes_to_get = ['linkedin_id', 'status',
@@ -367,7 +374,10 @@ def addto_dynamodb_reg_v2(linked_id, pubkey='N/A', token='N/A',
                           contact_fid='N/A', contact_fid_new='N/A',
                           contact_fid_new_new='N/A'):
     """Return status, record"""
-    tbl = get_dynamodb_table(app.config['V2_AUTH'])
+    if app.config['TESTING']:
+        tbl = get_dynamodb_table(app.config['V2_AUTH'])
+    else:
+        tbl = get_dynamodb_table(V2_AUTH)
     if tbl.has_item(hash_key=linked_id):
         item = tbl.get_item(
             hash_key=linked_id,
@@ -397,7 +407,11 @@ def addto_dynamodb_signup(linked_id, token='N/A', oauth1_data='N/A',
                           oauth_token='N/A', oauth_token_secret='N/A',
                           oauth_expires_in='N/A'):
     """Return status, record"""
-    tbl = get_dynamodb_table(app.config['V2_SIGNUP'], hash_key='token')
+    if app.config['TESTING']:
+        tbl = get_dynamodb_table(app.config['V2_SIGNUP'], hash_key='token')
+    else:
+        tbl = get_dynamodb_table(V2_SIGNUP, hash_key='token')
+
     if tbl.has_item(hash_key=token):
         item = tbl.get_item(
             hash_key=token,

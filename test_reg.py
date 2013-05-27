@@ -55,10 +55,10 @@ class RegTestCase(unittest.TestCase):
         srv.app.config['IDENTITY_CODE'] = generate_security_code()
         srv.app.config['V2_SIGNUP'] = 'v2_signup_test'
         srv.app.config['V2_AUTH'] = 'v2_auth_test'
-        oauth_token = lk_accounts['apple110531@gmail.com']['oauth_token']
-        oauth_token_secret = lk_accounts['apple110531@gmail.com']['oauth_token_secret']
+        oauth_token = lk_accounts['banana110531@gmail.com']['oauth_token']
+        oauth_token_secret = lk_accounts['banana110531@gmail.com']['oauth_token_secret']
         #add truecirclely2gmail.com to signup table
-        item = addto_dynamodb_signup(lk_accounts['apple110531@gmail.com']['id'],
+        item = addto_dynamodb_signup(lk_accounts['banana110531@gmail.com']['id'],
                                      token=srv.app.config['IDENTITY_CODE'],
                                      oauth_token=oauth_token,
                                      oauth_token_secret=oauth_token_secret,
@@ -98,7 +98,7 @@ class RegTestCase(unittest.TestCase):
             headers = {'content-type': 'application/json'},
             data = {
                 'identity_code': srv.app.config['IDENTITY_CODE'],
-                'email': 'apple110531@gmail.com',
+                'email': 'banana110531@gmail.com',
                 'pubkey': self.rsakey.publickey().exportKey(),
             })
         jrep = json.loads(rv.data)
@@ -112,7 +112,7 @@ class RegTestCase(unittest.TestCase):
             headers = {'content-type': 'application/json'},
             data = {
                 'identity_code': srv.app.config['IDENTITY_CODE'],
-                'email': 'apple110531@gmail.com',
+                'email': 'banana110531@gmail.com',
                 'pubkey': self.rsakey.publickey().exportKey(),
             })
         jrep = json.loads(rv.data)
@@ -120,7 +120,7 @@ class RegTestCase(unittest.TestCase):
         assert 200 == jrep.get('code', None)
         assert 'SUCCESS' == jrep['result']['status']
         assert self.rsakey.publickey().exportKey() == jrep['result']['pubkey']
-        assert lk_accounts['apple110531@gmail.com']['id'] == jrep['result']['linkedin_id']
+        assert lk_accounts['banana110531@gmail.com']['id'] == jrep['result']['linkedin_id']
 
 if __name__ == '__main__':
     unittest.main()

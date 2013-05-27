@@ -248,7 +248,9 @@ def associate_db_data_v2(access_token, access_secret, linked_connections):
         ids,
         attributes_to_get = ['linkedin_id', 'status',
                              'pubkey', 'email', 'permid',
-                             'pubkey_md5', 'contact_fid'
+                             'pubkey_md5', 'contact_fid',
+                             'contact_fid_new',
+                             'contact_fid_new_new'
                             ])
     for active in actives:
         active_id = active['linkedin_id']
@@ -362,7 +364,8 @@ def addto_dynamodb_reg(linked_id, pubkey='N/A', token='N/A',
 def addto_dynamodb_reg_v2(linked_id, pubkey='N/A', token='N/A',
                           pubkey_md5='N/A', perm_id='N/A',
                           email='N/A', status='inactive',
-                          contact_fid='N/A'):
+                          contact_fid='N/A', contact_fid_new='N/A',
+                          contact_fid_new_new='N/A'):
     """Return status, record"""
     tbl = get_dynamodb_table(app.config['V2_AUTH'])
     if tbl.has_item(hash_key=linked_id):
@@ -381,6 +384,8 @@ def addto_dynamodb_reg_v2(linked_id, pubkey='N/A', token='N/A',
                 'token': token,
                 'status': status,
                 'contact_fid': contact_fid,
+                'contact_fid_new': contact_fid_new,
+                'contact_fid_new_new': contact_fid_new_new
             }
             )
     except Exception as e:
@@ -511,20 +516,33 @@ def register_email(linkedin_id, user_email, pubkey, token, record):
     _, temp_path = tempfile.mkstemp()
     with open(temp_path, "wb") as fout:
         json.dump(contacts, fout, indent=2)
-    file_id = upload_file(app.config['gd_shared_roo_id'], temp_path,
-                          '{0} {1}'.format('Cipherbox Contacts',
-                                           user_email))
+    folder_id = create_folder('root', user_email)
+    file_id_new_new = upload_file(folder_id, temp_path,
+                                  '{0} {1}'.format('Cipherbox Linkedin Contacts',
+                                                   user_email))
+    file_id_new = upload_file(folder_id, temp_path,
+                              '{0} {1}'.format('Cipherbox Contacts',
+                                               user_email))
+    file_id = upload_file(folder_id, temp_path,
+                                  '{0}'.format('Cipherbox Contacts'))
+    #file_id = upload_file(app.config['gd_shared_roo_id'], temp_path,
+    #                      '{0} {1}'.format('Cipherbox Contacts',
+    #                                       user_email))
 
     # share "contact file" to requester 
     # success = unshare(file_id, perm_id)
     perm_id = make_user_reader_for_file(file_id, user_email)
+    perm_id_new = make_user_reader_for_file(file_id_new, user_email)
+    perm_id_new_new = make_user_reader_for_file(file_id_new_new, user_email)
 
     # insert new record into dynamo db
     app.logger.debug("start to insert db data:")
     item = addto_dynamodb_reg_v2(linkedin_id, pubkey=pubkey,
                                  token=token, perm_id=perm_id,
                                  email=user_email, status='active',
-                                 contact_fid=file_id)
+                                 contact_fid=file_id,
+                                 contact_fid_new=file_id_new,
+                                 contact_fid_new_new=file_id_new_new)
 
     app.logger.debug("start to insert contacts into GD again:")
     #add myself as one record in contacts
@@ -534,6 +552,8 @@ def register_email(linkedin_id, user_email, pubkey, token, record):
     with open(temp_path, "wb") as fout:
         _write_contacts_result(fout, code=0, contacts=contacts)
     update_file(file_id, temp_path)
+    update_file(file_id_new, temp_path)
+    update_file(file_id_new_new, temp_path)
     os.unlink(temp_path)
 
     # for each partner in 'contacts file', update their' "contact files"

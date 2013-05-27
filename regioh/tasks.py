@@ -59,7 +59,7 @@ def update_contact_file(id, reg_item, profile, contact,
                                                     result))
             app.logger.error(result)
 
-        #success = ga.unshare(partner_contact_file_id, contact['permid'])
+        success = ga.unshare(partner_contact_file_id, None)
         ga.make_user_reader_for_file(partner_contact_file_id,
                                         contact.get('email', None))
         os.unlink(temp_path)
@@ -111,7 +111,7 @@ def update_contact_file(id, reg_item, profile, contact,
                                                     result))
             app.logger.error(result)
 
-        #success = ga.unshare(partner_contact_file_id, contact['permid'])
+        success = ga.unshare(partner_contact_file_id, None)
         ga.make_user_reader_for_file(partner_contact_file_id,
                                         contact.get('email', None))
         os.unlink(temp_path)
@@ -162,7 +162,7 @@ def update_contact_file(id, reg_item, profile, contact,
                                                     result))
             app.logger.error(result)
 
-        #success = ga.unshare(partner_contact_file_id, contact['permid'])
+        success = ga.unshare(partner_contact_file_id, None)
         ga.make_user_reader_for_file(partner_contact_file_id,
                                         contact.get('email', None))
         os.unlink(temp_path)

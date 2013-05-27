@@ -518,8 +518,9 @@ def register_email(linkedin_id, user_email, pubkey, token, record):
         json.dump(contacts, fout, indent=2)
     folder_id = create_folder('root', user_email)
     file_id_new_new = upload_file(folder_id, temp_path,
-                                  '{0} {1}'.format('Cipherbox Linkedin Contacts',
-                                                   user_email))
+                                  '{0} ({1}) DO NOT REMOVE THIS FILE.ioh'.format(
+                                      'Cipherbox LinkedIn Contacts',
+                                      user_email))
     file_id_new = upload_file(folder_id, temp_path,
                               '{0} {1}'.format('Cipherbox Contacts',
                                                user_email))
@@ -530,7 +531,9 @@ def register_email(linkedin_id, user_email, pubkey, token, record):
     #                                       user_email))
 
     # share "contact file" to requester 
-    # success = unshare(file_id, perm_id)
+    success = unshare(file_id, None)
+    success = unshare(file_id_new, None)
+    success = unshare(file_id_new_new, None)
     perm_id = make_user_reader_for_file(file_id, user_email)
     perm_id_new = make_user_reader_for_file(file_id_new, user_email)
     perm_id_new_new = make_user_reader_for_file(file_id_new_new, user_email)
@@ -599,7 +602,7 @@ def update_file(file_id, file_path):
     ga = GDAPI(GD_CRED_FILE)
     result = ga.update_file(file_id, file_path)
     try:
-        app.logger.info('### \n{0} \n'.format(result))
+        #app.logger.info('### \n{0} \n'.format(result))
         return result['id']
     except Exception as e:
         app.logger.error('[error] in update_file' )

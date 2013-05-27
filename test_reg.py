@@ -13,15 +13,15 @@ celery.conf.update(
     )
 
 lk_accounts = {
-    'apple110531@gmail.com': {
-        'id': 'AryLrgEqrF',
-        'oauth_token': 'dedfb682-f57a-4d66-9e10-6ef6c7d72bb5',
-        'oauth_token_secret': '8644996e-e534-412b-bcd2-463a1ad5d2d2'
-    },
     'banana110531@gmail.com': {
         'id': 'tmoijVoPVd',
         'oauth_token': '6ba8a7ac-bf3d-495d-8f1f-6a0d7994074d',
         'oauth_token_secret': '1d1e2754-0d24-4cf4-bd70-f364f55c4ac4'
+    },
+    'cherry110531@gmail.com': {
+        'id': 'V1g8BEFEw7',
+        'oauth_token': '42e82ea3-9159-4b0f-9735-cef889b2e1c1',
+        'oauth_token_secret': '36fb10db-9bab-4956-a46e-a3938871273e'
     }
 }
 
@@ -55,10 +55,10 @@ class RegTestCase(unittest.TestCase):
         srv.app.config['IDENTITY_CODE'] = generate_security_code()
         srv.app.config['V2_SIGNUP'] = 'v2_signup_test'
         srv.app.config['V2_AUTH'] = 'v2_auth_test'
-        oauth_token = lk_accounts['banana110531@gmail.com']['oauth_token']
-        oauth_token_secret = lk_accounts['banana110531@gmail.com']['oauth_token_secret']
+        oauth_token = lk_accounts['cherry110531@gmail.com']['oauth_token']
+        oauth_token_secret = lk_accounts['cherry110531@gmail.com']['oauth_token_secret']
         #add truecirclely2gmail.com to signup table
-        item = addto_dynamodb_signup(lk_accounts['banana110531@gmail.com']['id'],
+        item = addto_dynamodb_signup(lk_accounts['cherry110531@gmail.com']['id'],
                                      token=srv.app.config['IDENTITY_CODE'],
                                      oauth_token=oauth_token,
                                      oauth_token_secret=oauth_token_secret,
@@ -98,7 +98,7 @@ class RegTestCase(unittest.TestCase):
             headers = {'content-type': 'application/json'},
             data = {
                 'identity_code': srv.app.config['IDENTITY_CODE'],
-                'email': 'banana110531@gmail.com',
+                'email': 'cherry110531@gmail.com',
                 'pubkey': self.rsakey.publickey().exportKey(),
             })
         jrep = json.loads(rv.data)
@@ -112,7 +112,7 @@ class RegTestCase(unittest.TestCase):
             headers = {'content-type': 'application/json'},
             data = {
                 'identity_code': srv.app.config['IDENTITY_CODE'],
-                'email': 'banana110531@gmail.com',
+                'email': 'cherry110531@gmail.com',
                 'pubkey': self.rsakey.publickey().exportKey(),
             })
         jrep = json.loads(rv.data)
@@ -120,7 +120,7 @@ class RegTestCase(unittest.TestCase):
         assert 200 == jrep.get('code', None)
         assert 'SUCCESS' == jrep['result']['status']
         assert self.rsakey.publickey().exportKey() == jrep['result']['pubkey']
-        assert lk_accounts['banana110531@gmail.com']['id'] == jrep['result']['linkedin_id']
+        assert lk_accounts['cherry110531@gmail.com']['id'] == jrep['result']['linkedin_id']
 
 if __name__ == '__main__':
     unittest.main()

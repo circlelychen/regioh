@@ -248,7 +248,8 @@ def associate_db_data_v2(access_token, access_secret, linked_connections):
         ids,
         attributes_to_get = ['linkedin_id', 'status',
                              'pubkey', 'email', 'permid',
-                             'pubkey_md5', 'contact_fid'
+                             'pubkey_md5', 'contact_fid',
+                             'contact_fid_new'
                             ])
     for active in actives:
         active_id = active['linkedin_id']

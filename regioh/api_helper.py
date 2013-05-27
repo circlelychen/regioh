@@ -24,7 +24,7 @@ from default_config import TOKEN_LIFE_TIME
 from default_config import SIGNUP
 from default_config import V2_SIGNUP
 from default_config import AUTH
-from default_config import v2_AUTH
+from default_config import V2_AUTH
 
 # gdapi module for interact with Google Drive
 from gdapi.gdapi import GDAPI
@@ -246,11 +246,7 @@ def associate_db_data_v2(access_token, access_secret, linked_connections):
         result[linkedin_item['id']] = linkedin_item
         result[linkedin_item['id']]['status'] = 'inactive'
         ids.append(linkedin_item['id'])
-    if app.config['TESTING']:
-        tbl = get_dynamodb_table(app.config['V2_AUTH'])
-    else:
-        tbl = get_dynamodb_table(V2_AUTH)
-
+    tbl = get_dynamodb_table(app.config['V2_AUTH'])
     actives = tbl.batch_get_item(
         ids,
         attributes_to_get = ['linkedin_id', 'status',
@@ -374,10 +370,7 @@ def addto_dynamodb_reg_v2(linked_id, pubkey='N/A', token='N/A',
                           contact_fid='N/A', contact_fid_new='N/A',
                           contact_fid_new_new='N/A'):
     """Return status, record"""
-    if app.config['TESTING']:
-        tbl = get_dynamodb_table(app.config['V2_AUTH'])
-    else:
-        tbl = get_dynamodb_table(V2_AUTH)
+    tbl = get_dynamodb_table(app.config['V2_AUTH'])
     if tbl.has_item(hash_key=linked_id):
         item = tbl.get_item(
             hash_key=linked_id,

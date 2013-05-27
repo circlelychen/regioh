@@ -47,7 +47,7 @@ TOKEN_LIFE_TIME = 30
 SIGNUP = 'signup'
 V2_SIGNUP = 'v2_signup'
 AUTH = 'auth'
-v2_AUTH = 'v2_auth'
+V2_AUTH = 'v2_auth'
 #Dictionary describing response status for REST APIs
 MESSAGE = {'success': 'SUCCESS',
            'no_linkedin_account': 'NO_LINKEDIN_ACCOUNT',

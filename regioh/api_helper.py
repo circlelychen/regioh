@@ -173,12 +173,12 @@ def verify_linkedin_status(linked_ids):
             result[active_id] = 'active'
     return result
 
-def get_token_check(token):
+def get_code_check(token):
     ''' (str) -> dict
 
     return Dict of (status, oauth, email) if token is valid
 
-    >> get_token_check(token)
+    >> get_code_check(token)
     {
         "status": <str>,
         "token": <str>,
@@ -236,7 +236,7 @@ def get_token_check(token):
     status, record = query_dynamodb_reg(item['id'])
     if record:
         result['reg_data'] = {"gmail": record['email']}
-        app.logger.debug("get_token_check [SUCCESS]")
+        app.logger.debug("get_code_check [SUCCESS]")
     return result
 
 def associate_db_data_v2(access_token, access_secret, linked_connections):

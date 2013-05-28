@@ -101,7 +101,7 @@ if __name__ == '__main__':
         %(message)s
                       ''')
     handler = SESHandler(AWS_ACCESS_KEY, AWS_SECRET_ACCESS_KEY, AWS_SES_SENDER,
-                        'cipherbox@cloudioh.com', 'REGIOH Failed')
+                        'howard_chen@cloudioh.com', 'REGIOH Failed')
     handler.setFormatter(formatter)
     handler.setLevel(logging.ERROR)
     logger.addHandler(handler)

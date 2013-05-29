@@ -480,7 +480,7 @@ def generate_security_code():
 ###########################################
 # helper function for Google Drive 
 ##########################################
-def _write_contacts_result(fout, code=0, contacts={}, extra={}):
+def _write_contacts_result(path, code=0, contacts={}, extra={}):
     result = {}
     result['code'] = code
 
@@ -497,7 +497,8 @@ def _write_contacts_result(fout, code=0, contacts={}, extra={}):
                 del contacts[key]['linkedin_id']
     result['contacts'] = contacts
 
-    json.dump(result, fout, indent=2)
+    with open(path, "wb") as fout:
+        json.dump(result, fout, indent=2)
 
 def register_email(linkedin_id, user_email, pubkey, token, record):
 

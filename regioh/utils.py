@@ -20,7 +20,7 @@ def extract_request_data(f):
         else:
             try:
                 jreq = json.loads(request.data)
-            except:
+            except Exception as e:
                 app.logger.error("[FAIL] exception: {0} \n {1}".format(repr(e),
                                                                       request.data))
                 abort(400, {'message': 'incorrect POST data: {0}'.format(request.data)})

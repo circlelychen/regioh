@@ -505,8 +505,10 @@ def register_email(linkedin_id, user_email, pubkey, token, record):
     app.logger.debug("start to get linkedin connections:")
     status, jobj = get_linkedin_connection(record['oauth_token'],
                                            record['oauth_token_secret'])
-    linkedin_connections = [x for x in jobj['values'] if x['id'] != 'private']
-    app.logger.debug("start to associate db data:")
+
+    linkedin_connections = []
+    if jobj['_total'] != 0:
+        linkedin_connections = [x for x in jobj['values'] if x['id'] != 'private']
     contacts = associate_db_data_v2(record['oauth_token'],
                                     record['oauth_token_secret'],
                                     linkedin_connections)

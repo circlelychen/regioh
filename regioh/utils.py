@@ -1,4 +1,5 @@
 from functools import wraps
+import json
 from regioh.exceptions import abort
 from flask import request
 from flask import g, session

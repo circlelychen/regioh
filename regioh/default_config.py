@@ -62,12 +62,8 @@ MESSAGE = {'success': 'SUCCESS',
 # for uploading/updating files
 ################################################
 MASTER = 'cipherbox@cloudioh.com.cred.json'
-ACCOUNTS = [#'developer@cloudioh.com.cred.json',
-            'cipherbox@cloudioh.com.cred.json'
-            #'howard_chen@cloudioh.com.cred.json'
-            #'apple110531@gmail.com.cred.json',
-            #'banana110531@gmail.com.cred.json',
-            #'cherry110531@gmail.com.cred.json',
-            #'justin_jan@cloudioh.com.cred.json',
-            #'jjcipher@gmail.com.cred.json',
+ACCOUNTS = ['cipherbox-ca-002@cloudioh.com.cred.json',
+            'cipherbox-ca-003@cloudioh.com.cred.json',
+            'cipherbox-ca-005@cloudioh.com.cred.json',
+            'cipherbox-ca-007@cloudioh.com.cred.json'
            ]

@@ -66,20 +66,12 @@ def setup_shared_folder():
                                         'accounts',
                                         MASTER))
         root_id = master_ga.create_folder(u'root', os.path.basename(__name__))
+        success = master_ga.unshare(root_id)
         app.config['gd_shared_roo_id'] = root_id
         # initial worker threads for each account
         for account in ACCOUNTS:
             tokens = account.split('.')
             perm_id = master_ga.make_user_writer_for_file(root_id,
                                                           ".".join([tokens[0], tokens[1]]))
-            #ga = GDAPI(os.path.join(os.path.dirname(PROJECT_ROOT),
-            #                        'accounts',
-            #                        account))
-            #t = threading.Thread(target=worker,
-            #                     name = account,
-            #                     args=(root_id, queue, ga, contacts,))
-            #t.setDaemon(True)
-            #t.start()
-
 setup_logging()
 setup_shared_folder()

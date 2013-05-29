@@ -136,6 +136,8 @@ class RegTestCase(unittest.TestCase):
                                     users[self.actor1]['cred_file']))
         title = 'Cipherbox LinkedIn Contacts ({0}) DO NOT REMOVE THIS FILE.ioh'.format( self.actor1)
         result = ga.query_title(title, isSharedWithMe=True)
+        with open('aaa.txt', 'wb') as fout:
+            json.dump(result, fout, indent=2)
         assert len(result) == 1
         assert result[0]['id']
 

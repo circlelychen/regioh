@@ -524,35 +524,19 @@ def register_email(linkedin_id, user_email, pubkey, token, record):
     with open(temp_path, "wb") as fout:
         json.dump(contacts, fout, indent=2)
     folder_id = create_folder('root', user_email)
-    file_id_new_new = upload_file(folder_id, temp_path,
+    file_id = upload_file(app.config['gd_shared_roo_id'], temp_path,
                                   '{0} ({1}) DO NOT REMOVE THIS FILE.ioh'.format(
                                       'Cipherbox LinkedIn Contacts',
                                       user_email))
-    file_id_new = upload_file(folder_id, temp_path,
-                              '{0} {1}'.format('Cipherbox Contacts',
-                                               user_email))
-    file_id = upload_file(folder_id, temp_path,
-                                  '{0}'.format('Cipherbox Contacts'))
-    #file_id = upload_file(app.config['gd_shared_roo_id'], temp_path,
-    #                      '{0} {1}'.format('Cipherbox Contacts',
-    #                                       user_email))
-
     # share "contact file" to requester 
-    success = unshare(file_id, None)
-    success = unshare(file_id_new, None)
-    success = unshare(file_id_new_new, None)
     perm_id = make_user_reader_for_file(file_id, user_email)
-    perm_id_new = make_user_reader_for_file(file_id_new, user_email)
-    perm_id_new_new = make_user_reader_for_file(file_id_new_new, user_email)
 
     # insert new record into dynamo db
     app.logger.debug("start to insert db data:")
     item = addto_dynamodb_reg_v2(linkedin_id, pubkey=pubkey,
                                  token=token, perm_id=perm_id,
                                  email=user_email, status='active',
-                                 contact_fid=file_id,
-                                 contact_fid_new=file_id_new,
-                                 contact_fid_new_new=file_id_new_new)
+                                 contact_fid=file_id)
 
     app.logger.debug("start to insert contacts into GD again:")
     #add myself as one record in contacts
@@ -561,9 +545,9 @@ def register_email(linkedin_id, user_email, pubkey, token, record):
         contacts['me'][index] = jobj_profile[index]
     with open(temp_path, "wb") as fout:
         _write_contacts_result(fout, code=0, contacts=contacts)
+    success = unshare(file_id, perm_id)
     update_file(file_id, temp_path)
-    update_file(file_id_new, temp_path)
-    update_file(file_id_new_new, temp_path)
+    perm_id = make_user_reader_for_file(file_id, user_email)
     os.unlink(temp_path)
 
     # for each partner in 'contacts file', update their' "contact files"

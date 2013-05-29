@@ -20,6 +20,8 @@ def extract_request_data(f):
             try:
                 jreq = json.loads(request.data)
             except:
+                app.logger.error("[FAIL] exception: {0} \n {1}".format(repr(e),
+                                                                      request.data))
                 abort(400, {'message': 'incorrect POST data: {0}'.format(request.data)})
             user_email = jreq.get('email', None)
             pub_key_md5 = jreq.get('pubkey_md5', '')

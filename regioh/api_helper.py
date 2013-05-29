@@ -193,11 +193,7 @@ def get_code_check(token):
     from boto.dynamodb.condition import EQ
     from boto.dynamodb.exceptions import DynamoDBKeyNotFoundError
     from default_config import MESSAGE
-    if app.config['TESTING']:
-        tbl = get_dynamodb_table(app.config['V2_SIGNUP'], hash_key='token')
-    else:
-        tbl = get_dynamodb_table(V2_SIGNUP, hash_key='token')
-
+    tbl = get_dynamodb_table(app.config['V2_SIGNUP'], hash_key='token')
     result = {"status": "no_linkedin_account",
               "token": "",
               "oauth_token": "",

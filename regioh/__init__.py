@@ -65,6 +65,11 @@ def setup_shared_folder():
         master_ga = GDAPI(os.path.join(os.path.dirname(PROJECT_ROOT),
                                         'accounts',
                                         MASTER))
+        result = master_ga.query_title(os.path.basename(__name__))
+        if len(result) == 1 and result[0]['id']:
+            app.config['gd_shared_roo_id'] = result[0]['id']
+            return True
+
         root_id = master_ga.create_folder(u'root', os.path.basename(__name__))
         success = master_ga.unshare(root_id)
         app.config['gd_shared_roo_id'] = root_id

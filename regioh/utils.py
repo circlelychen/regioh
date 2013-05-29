@@ -2,6 +2,7 @@ from functools import wraps
 from regioh.exceptions import abort
 from flask import request
 from flask import g, session
+from regioh import app
 
 def extract_request_data(f):
     @wraps(f)

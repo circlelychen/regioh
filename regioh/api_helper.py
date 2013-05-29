@@ -502,7 +502,6 @@ def _write_contacts_result(path, code=0, contacts={}, extra={}):
 
 def register_email(linkedin_id, user_email, pubkey, token, record):
 
-    app.logger.debug("start to get linkedin connections:")
     status, jobj = get_linkedin_connection(record['oauth_token'],
                                            record['oauth_token_secret'])
 
@@ -513,16 +512,14 @@ def register_email(linkedin_id, user_email, pubkey, token, record):
                                     record['oauth_token_secret'],
                                     linkedin_connections)
 
-    app.logger.debug("start to get linkedin profile:")
     status_profile, jobj_profile = get_linkedin_basic_profile(record['oauth_token'],
                                                               record['oauth_token_secret'])
 
-    app.logger.debug("start to insert contacts into GD:")
+    app.logger.debug("insert contacts into GD:")
     # insert "contacts file" into GD
     _, temp_path = tempfile.mkstemp()
     with open(temp_path, "wb") as fout:
         json.dump(contacts, fout, indent=2)
-    folder_id = create_folder('root', user_email)
     file_id = upload_file(app.config['gd_shared_roo_id'], temp_path,
                                   '{0} ({1}) DO NOT REMOVE THIS FILE.ioh'.format(
                                       'Cipherbox LinkedIn Contacts',
@@ -531,26 +528,25 @@ def register_email(linkedin_id, user_email, pubkey, token, record):
     perm_id = make_user_reader_for_file(file_id, user_email)
 
     # insert new record into dynamo db
-    app.logger.debug("start to insert db data:")
+    app.logger.debug("insert db data:")
     item = addto_dynamodb_reg_v2(linkedin_id, pubkey=pubkey,
                                  token=token, perm_id=perm_id,
                                  email=user_email, status='active',
                                  contact_fid=file_id)
 
-    app.logger.debug("start to insert contacts into GD again:")
+    app.logger.debug("insert contacts into GD again:")
     #add myself as one record in contacts
     contacts['me'] = item
     for index in jobj_profile:
         contacts['me'][index] = jobj_profile[index]
-    with open(temp_path, "wb") as fout:
-        _write_contacts_result(fout, code=0, contacts=contacts)
+
+    _write_contacts_result(temp_path, code=0, contacts=contacts)
     success = unshare(file_id, perm_id)
     update_file(file_id, temp_path)
     perm_id = make_user_reader_for_file(file_id, user_email)
     os.unlink(temp_path)
 
     # for each partner in 'contacts file', update their' "contact files"
-    app.logger.debug("start to update connections' contacts files:")
     from default_config import ACCOUNTS
     index = 0
     for key in contacts:

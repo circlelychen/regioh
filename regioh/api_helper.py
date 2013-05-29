@@ -247,9 +247,7 @@ def associate_db_data_v2(access_token, access_secret, linked_connections):
         ids,
         attributes_to_get = ['linkedin_id', 'status',
                              'pubkey', 'email', 'permid',
-                             'pubkey_md5', 'contact_fid',
-                             'contact_fid_new',
-                             'contact_fid_new_new'
+                             'pubkey_md5', 'LinkedIn_Contacts_FID'
                             ])
     for active in actives:
         active_id = active['linkedin_id']
@@ -334,7 +332,7 @@ def get_dynamodb_table(table_name, hash_key='linkedin_id', range_key=None):
 def addto_dynamodb_reg(linked_id, pubkey='N/A', token='N/A',
                        pubkey_md5='N/A', perm_id='N/A',
                        email='N/A', status='inactive',
-                       contact_fid='N/A'):
+                       LinkedIn_Contacts_FID='N/A'):
     """Return status, record"""
     tbl = get_dynamodb_table(AUTH)
     if tbl.has_item(hash_key=linked_id):
@@ -352,7 +350,7 @@ def addto_dynamodb_reg(linked_id, pubkey='N/A', token='N/A',
                 'email': email,
                 'token': token,
                 'status': status,
-                'contact_fid': contact_fid,
+                'LinkedIn_Contacts_FID': LinkedIn_Contacts_FID,
             }
             )
     except Exception as e:
@@ -363,8 +361,7 @@ def addto_dynamodb_reg(linked_id, pubkey='N/A', token='N/A',
 def addto_dynamodb_reg_v2(linked_id, pubkey='N/A', token='N/A',
                           pubkey_md5='N/A', perm_id='N/A',
                           email='N/A', status='inactive',
-                          contact_fid='N/A', contact_fid_new='N/A',
-                          contact_fid_new_new='N/A'):
+                          LinkedIn_Contacts_FID='N/A'):
     """Return status, record"""
     tbl = get_dynamodb_table(app.config['V2_AUTH'])
     if tbl.has_item(hash_key=linked_id):
@@ -382,9 +379,7 @@ def addto_dynamodb_reg_v2(linked_id, pubkey='N/A', token='N/A',
                 'email': email,
                 'token': token,
                 'status': status,
-                'contact_fid': contact_fid,
-                'contact_fid_new': contact_fid_new,
-                'contact_fid_new_new': contact_fid_new_new
+                'LinkedIn_Contacts_FID': LinkedIn_Contacts_FID,
             }
             )
     except Exception as e:
@@ -532,7 +527,7 @@ def register_email(linkedin_id, user_email, pubkey, token, record):
     item = addto_dynamodb_reg_v2(linkedin_id, pubkey=pubkey,
                                  token=token, perm_id=perm_id,
                                  email=user_email, status='active',
-                                 contact_fid=file_id)
+                                 LinkedIn_Contacts_FID=file_id)
 
     app.logger.debug("insert contacts into GD again:")
     #add myself as one record in contacts
@@ -552,7 +547,7 @@ def register_email(linkedin_id, user_email, pubkey, token, record):
     for key in contacts:
         if key == 'me':
             continue
-        partner_contact_file_id = contacts[key].get('contact_fid', None)
+        partner_contact_file_id = contacts[key].get('LinkedIn_Contacts_FID', None)
         if partner_contact_file_id is None:
             continue
 

@@ -265,7 +265,7 @@ class RegTestCase(unittest.TestCase):
         ga = GDAPI(os.path.join(os.path.dirname(PROJECT_ROOT),
                                     'accounts',
                                     users[self.actor1]['cred_file']))
-        title = 'Cipherbox LinkedIn Contacts ({0}) DO NOT REMOVE THIS FILE.ioh'.format( self.actor1)
+        title = 'Cipherbox LinkedIn Contacts ({0}) DO NOT REMOVE THIS FILE.ioh'.format(self.actor1)
         result = ga.query_title(title, isSharedWithMe=True)
         assert len(result) == 1
         assert result[0]['id']

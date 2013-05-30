@@ -14,7 +14,6 @@ import api_helper
 def update_contact_file(id, reg_item, profile, contact,
                         worker_name='cipherbox@cloudioh.com.cred.json'):
     from default_config import PROJECT_ROOT
-
     partner_contact_file_id = contact.get('LinkedIn_Contacts_FID', None)
     if partner_contact_file_id is None:
         return False

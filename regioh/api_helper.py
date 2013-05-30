@@ -153,26 +153,6 @@ def get_oauth1_request_url():
     authorize_url ='https://api.linkedin.com/uas/oauth/authorize'
     return "{0}?oauth_token={1}".format(authorize_url, oauth_token)
 
-def verify_linkedin_status(linked_ids):
-    from boto.dynamodb.condition import EQ
-    tbl = get_dynamodb_table(AUTH)
-    actives = tbl.scan(scan_filter = {
-        "status": EQ('active')
-    })#, attributes_to_get = ['linkedin_id', 'status'])
-    result = {}
-    #for active in actives:
-    #    print active
-    #    if active.get('linkedin_id', None) is None:
-    #        active.delete()
-
-    for linked_id in linked_ids:
-        result[linked_id] = 'inactive'
-    for active in actives:
-        active_id = active['linkedin_id']
-        if active_id in linked_ids:
-            result[active_id] = 'active'
-    return result
-
 def get_code_check(token):
     ''' (str) -> dict
 
@@ -255,18 +235,7 @@ def associate_db_data_v2(access_token, access_secret, linked_connections):
             result[active_id][key] = active[key]
     return result
 
-def fetch_public_key(google_file_id):
-    import requests
-    url = GOOGLE_DOWNLOAD_URL
-    resp = requests.get(url,
-                        params={
-                            'export': 'download',
-                            'id': google_file_id,
-                        }
-                       )
-    if resp.status_code == 200:
-        return resp.content
-    return None
+
 
 def notify_email(email, content):
     conn = ses.connect_to_region(
@@ -330,35 +299,6 @@ def get_dynamodb_table(table_name, hash_key='linkedin_id', range_key=None):
     return table
 
 def addto_dynamodb_reg(linked_id, pubkey='N/A', token='N/A',
-                       pubkey_md5='N/A', perm_id='N/A',
-                       email='N/A', status='inactive',
-                       LinkedIn_Contacts_FID='N/A'):
-    """Return status, record"""
-    tbl = get_dynamodb_table(AUTH)
-    if tbl.has_item(hash_key=linked_id):
-        item = tbl.get_item(
-            hash_key=linked_id,
-            )
-        item.delete()
-    try:
-        item = tbl.new_item(
-            hash_key=linked_id,
-            attrs={
-                'permid': perm_id,
-                'pubkey': pubkey,
-                'pubkey_md5': pubkey_md5,
-                'email': email,
-                'token': token,
-                'status': status,
-                'LinkedIn_Contacts_FID': LinkedIn_Contacts_FID,
-            }
-            )
-    except Exception as e:
-        app.logger.error(e)
-    item.put()
-    return item
-
-def addto_dynamodb_reg_v2(linked_id, pubkey='N/A', token='N/A',
                           pubkey_md5='N/A', perm_id='N/A',
                           email='N/A', status='inactive',
                           LinkedIn_Contacts_FID='N/A'):
@@ -438,6 +378,13 @@ def query_dynamodb_reg(linked_id, pubkey=None, email=None, token=None):
         return 'invalid', {}
     return item['status'], item
 
+def generate_security_code():
+    """Generate R-R-R-R-R random string R"""
+    import random
+    import string
+    populate=string.uppercase+string.digits
+    return "-".join([ "".join(random.sample(populate, 5)) for i in range(5)])
+
 #def query_dynamodb_signup(linked_id):
 #    """Return status, record"""
 #    tbl = get_dynamodb_table(V2_SIGNUP, hash_key='token')
@@ -456,12 +403,6 @@ def update_dynamodb(item):
 #    from Crypto import Random
 #    return Random.new().read(32)
 
-def generate_security_code():
-    """Generate R-R-R-R-R random string R"""
-    import random
-    import string
-    populate=string.uppercase+string.digits
-    return "-".join([ "".join(random.sample(populate, 5)) for i in range(5)])
 
 #def compute_C(rsa_pub_key_string, rand32):
 #    from Crypto.PublicKey import RSA
@@ -471,6 +412,19 @@ def generate_security_code():
 #    cipher = PKCS1_v1_5.new(rsa_pub)
 #    return hexlify(cipher.encrypt(rand32))
 
+
+#def fetch_public_key(google_file_id):
+#    import requests
+#    url = GOOGLE_DOWNLOAD_URL
+#    resp = requests.get(url,
+#                        params={
+#                            'export': 'download',
+#                            'id': google_file_id,
+#                        }
+#                       )
+#    if resp.status_code == 200:
+#        return resp.content
+#    return None
 
 ###########################################
 # helper function for Google Drive 
@@ -495,36 +449,49 @@ def _write_contacts_result(path, code=0, contacts={}, extra={}):
     with open(path, "wb") as fout:
         json.dump(result, fout, indent=2)
 
-def register_email(linkedin_id, user_email, pubkey, token, record):
-
-    status, jobj = get_linkedin_connection(record['oauth_token'],
-                                           record['oauth_token_secret'])
-
+def get_associated_contacts(oauth_token, oauth_token_secret):
+    '''
+    >>> get_associated_contacts(oauth_token, oauth_token_secret)
+    {
+        "{ID}": {contact object},
+        "{ID}": {contact object},
+        ...
+    }
+    '''
+    # get linkedIn connections
     linkedin_connections = []
+    status, jobj = get_linkedin_connection(oauth_token,oauth_token_secret)
     if jobj['_total'] != 0:
         linkedin_connections = [x for x in jobj['values'] if x['id'] != 'private']
-    contacts = associate_db_data_v2(record['oauth_token'],
-                                    record['oauth_token_secret'],
-                                    linkedin_connections)
 
+    # associate connection with reg database
+    contacts = associate_db_data_v2(oauth_token,oauth_token_secret,
+                                    linkedin_connections)
+    return contacts
+
+def register_email(linkedin_id, user_email, pubkey, token, record):
+
+    # get linkedIn profile
     status_profile, jobj_profile = get_linkedin_basic_profile(record['oauth_token'],
                                                               record['oauth_token_secret'])
 
-    app.logger.debug("insert contacts into GD:")
-    # insert "contacts file" into GD
+    # get connetion associated with REG database
+    contacts = get_associated_contacts(record['oauth_token'],
+                                       record['oauth_token_secret'])
+
+
+    #file_id, perm_id = upload_contacts_and_share(contacts, user_email)
     _, temp_path = tempfile.mkstemp()
     with open(temp_path, "wb") as fout:
         json.dump(contacts, fout, indent=2)
     file_id = upload_file(app.config['gd_shared_roo_id'], temp_path,
-                                  '{0} ({1}) DO NOT REMOVE THIS FILE.ioh'.format(
-                                      'Cipherbox LinkedIn Contacts',
-                                      user_email))
-    # share "contact file" to requester 
+                          '{0} ({1}) DO NOT REMOVE THIS FILE.ioh'.format(
+                              'Cipherbox LinkedIn Contacts',
+                              user_email))
     perm_id = make_user_reader_for_file(file_id, user_email)
 
     # insert new record into dynamo db
-    app.logger.debug("insert db data:")
-    item = addto_dynamodb_reg_v2(linkedin_id, pubkey=pubkey,
+    item = addto_dynamodb_reg(linkedin_id, pubkey=pubkey,
                                  token=token, perm_id=perm_id,
                                  email=user_email, status='active',
                                  LinkedIn_Contacts_FID=file_id)
@@ -537,8 +504,11 @@ def register_email(linkedin_id, user_email, pubkey, token, record):
 
     _write_contacts_result(temp_path, code=0, contacts=contacts)
     success = unshare(file_id, perm_id)
+
+
     update_file(file_id, temp_path)
     perm_id = make_user_reader_for_file(file_id, user_email)
+
     os.unlink(temp_path)
 
     # for each partner in 'contacts file', update their' "contact files"
@@ -560,6 +530,30 @@ def register_email(linkedin_id, user_email, pubkey, token, record):
             serializer='json')
         index = index + 1
 
+def _random_select_ga():
+    '''
+    randomly select google agent from ACCOUNTS
+    '''
+    import random
+    from default_config import PROJECT_ROOT
+    from default_config import ACCOUNTS
+    index = random.randint(0, len(ACCOUNTS)-1)
+    ga = GDAPI(os.path.join(os.path.dirname(PROJECT_ROOT), 'accounts',
+                            ACCOUNTS[index]))
+    return ga
+
+def upload_contacts_and_share(contacts, user_email):
+    _, temp_path = tempfile.mkstemp()
+    with open(temp_path, "wb") as fout:
+        json.dump(contacts, fout, indent=2)
+    file_id = upload_file(app.config['gd_shared_roo_id'], temp_path,
+                          '{0} ({1}) DO NOT REMOVE THIS FILE.ioh'.format(
+                              'Cipherbox LinkedIn Contacts',
+                              user_email))
+    #os.unlink(temp_path)
+    perm_id = make_user_reader_for_file(file_id, user_email)
+    return file_id, perm_id
+
 def upload_file(parent_id, file_path, file_name):
     '''
     use content in local file_path to
@@ -569,7 +563,7 @@ def upload_file(parent_id, file_path, file_name):
 
     return file_id
     '''
-    ga = GDAPI(GD_CRED_FILE)
+    ga = _random_select_ga()
     result = ga.create_or_update_file(parent_id, file_path, file_name)
     return result['id']
 
@@ -580,7 +574,7 @@ def update_file(file_id, file_path):
 
     return file_id
     '''
-    ga = GDAPI(GD_CRED_FILE)
+    ga = _random_select_ga()
     result = ga.update_file(file_id, file_path)
     try:
         #app.logger.info('### \n{0} \n'.format(result))
@@ -591,7 +585,7 @@ def update_file(file_id, file_path):
 
 
 def download_file(file_id, dest_path):
-    ga = GDAPI(GD_CRED_FILE)
+    ga = _random_select_ga()
     success = ga.download_file(file_id, dest_path)
     return success
 
@@ -602,18 +596,18 @@ def create_folder(parent_id, title):
 
     return folder_id
     '''
-    ga = GDAPI(GD_CRED_FILE)
+    ga = _random_select_ga()
     folder_id = ga.create_folder(parent_id, title)
     return folder_id
 
 def unshare(res_id, perm_id):
-    ga = GDAPI(GD_CRED_FILE)
+    ga = _random_select_ga()
     success = ga.unshare(res_id, perm_id)
     return success
 
 
 def make_user_reader_for_file(file_id, user_email):
-    ga = GDAPI(GD_CRED_FILE)
+    ga = _random_select_ga()
     result = ga.make_user_reader_for_file(file_id, user_email)
     return result['id']
 

@@ -28,7 +28,7 @@ from default_config import V2_AUTH
 
 # gdapi module for interact with Google Drive
 from gdapi.gdapi import GDAPI
-from default_config import GD_CRED_FILE
+#from default_config import GD_CRED_FILE
 
 import requests
 import urlparse
@@ -364,7 +364,7 @@ def addto_dynamodb_signup(linked_id, token='N/A', oauth1_data='N/A',
 
 def query_dynamodb_reg(linked_id, pubkey=None, email=None, token=None):
     """Return status, record"""
-    tbl = get_dynamodb_table(AUTH)
+    tbl = get_dynamodb_table(app.config['V2_AUTH'])
     if not tbl.has_item(hash_key=linked_id):
         return 'invalid', {}
     item = tbl.get_item(
@@ -471,45 +471,32 @@ def get_associated_contacts(oauth_token, oauth_token_secret):
 
 def register_email(linkedin_id, user_email, pubkey, token, record):
 
+    contacts = {}
+
+    #file_id, perm_id = upload_contacts_and_share(contacts, user_email)
+    file_id, perm_id = upload_contacts_and_share(contacts, user_email)
+
     # get linkedIn profile
     status_profile, jobj_profile = get_linkedin_basic_profile(record['oauth_token'],
                                                               record['oauth_token_secret'])
-
     # get connetion associated with REG database
     contacts = get_associated_contacts(record['oauth_token'],
                                        record['oauth_token_secret'])
 
-
-    #file_id, perm_id = upload_contacts_and_share(contacts, user_email)
-    _, temp_path = tempfile.mkstemp()
-    with open(temp_path, "wb") as fout:
-        json.dump(contacts, fout, indent=2)
-    file_id = upload_file(app.config['gd_shared_roo_id'], temp_path,
-                          '{0} ({1}) DO NOT REMOVE THIS FILE.ioh'.format(
-                              'Cipherbox LinkedIn Contacts',
-                              user_email))
-    perm_id = make_user_reader_for_file(file_id, user_email)
-
     # insert new record into dynamo db
     item = addto_dynamodb_reg(linkedin_id, pubkey=pubkey,
-                                 token=token, perm_id=perm_id,
-                                 email=user_email, status='active',
-                                 LinkedIn_Contacts_FID=file_id)
+                              token=token, perm_id=perm_id,
+                              email=user_email, status='active',
+                              LinkedIn_Contacts_FID=file_id)
 
-    app.logger.debug("insert contacts into GD again:")
     #add myself as one record in contacts
     contacts['me'] = item
     for index in jobj_profile:
         contacts['me'][index] = jobj_profile[index]
 
-    _write_contacts_result(temp_path, code=0, contacts=contacts)
-    success = unshare(file_id, perm_id)
-
-
-    update_file(file_id, temp_path)
-    perm_id = make_user_reader_for_file(file_id, user_email)
-
-    os.unlink(temp_path)
+    #file_id, perm_id = upload_contacts_and_share(contacts, user_email)
+    file_id, perm_id = upload_contacts_and_share(contacts, user_email)
+    app.logger.debug(" create contact for {0}".format(user_email))
 
     # for each partner in 'contacts file', update their' "contact files"
     from default_config import ACCOUNTS
@@ -543,15 +530,23 @@ def _random_select_ga():
     return ga
 
 def upload_contacts_and_share(contacts, user_email):
+    '''
+    upload contacts file to google drive and share to target user
+
+    1. generate tempfile
+    2. upload tempfile
+    3. share to user
+    '''
     _, temp_path = tempfile.mkstemp()
     with open(temp_path, "wb") as fout:
-        json.dump(contacts, fout, indent=2)
+        _write_contacts_result(temp_path, code=0, contacts=contacts)
     file_id = upload_file(app.config['gd_shared_roo_id'], temp_path,
                           '{0} ({1}) DO NOT REMOVE THIS FILE.ioh'.format(
                               'Cipherbox LinkedIn Contacts',
                               user_email))
     #os.unlink(temp_path)
     perm_id = make_user_reader_for_file(file_id, user_email)
+    os.unlink(temp_path)
     return file_id, perm_id
 
 def upload_file(parent_id, file_path, file_name):
@@ -589,17 +584,6 @@ def download_file(file_id, dest_path):
     success = ga.download_file(file_id, dest_path)
     return success
 
-def create_folder(parent_id, title):
-    '''
-    1. create folder if there is no items
-    2. update folder if there is a item existing
-
-    return folder_id
-    '''
-    ga = _random_select_ga()
-    folder_id = ga.create_folder(parent_id, title)
-    return folder_id
-
 def unshare(res_id, perm_id):
     ga = _random_select_ga()
     success = ga.unshare(res_id, perm_id)
@@ -610,6 +594,25 @@ def make_user_reader_for_file(file_id, user_email):
     ga = _random_select_ga()
     result = ga.make_user_reader_for_file(file_id, user_email)
     return result['id']
+
+def check_file_exist(file_id):
+    ga = _random_select_ga()
+    drive_file = ga.get_file_meta(file_id)
+    if drive_file is None:
+        return False
+    return True
+
+#def create_folder(parent_id, title):
+#    '''
+#    1. create folder if there is no items
+#    2. update folder if there is a item existing
+#
+#    return folder_id
+#    '''
+#    ga = _random_select_ga()
+#    folder_id = ga.create_folder(parent_id, title)
+#    return folder_id
+
 
 #def get_lk_token_status(linked_id, token):
 #    from boto.dynamodb.condition import EQ

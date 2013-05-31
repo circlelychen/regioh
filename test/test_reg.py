@@ -1,15 +1,20 @@
 #!/usr/bin/env python
 #-*- coding: utf-8 -*-
 import os
-try: import unittest2 as unittest
-except ImportError: import unittest
-import regioh as srv
+import sys
 import json
 import tempfile
+from gdapi.gdapi import GDAPI
+try: import unittest2 as unittest
+except ImportError: import unittest
 
+path = os.getcwd()
+if path not in sys.path:
+    sys.path.append(path)
+
+import regioh as srv
 from regioh.celery import celery
 from regioh.default_config import PROJECT_ROOT
-from gdapi.gdapi import GDAPI
 
 celery.conf.update(
     CELERY_ALWAYS_EAGER = True,
@@ -36,7 +41,7 @@ users = {
     }
 }
 
-class RegTestCase(unittest.TestCase):
+class RegV2TestCase(unittest.TestCase):
     """Test for File Operation"""
 
     def setUp(self):
@@ -45,9 +50,11 @@ class RegTestCase(unittest.TestCase):
         srv.app.config['V2_SIGNUP'] = 'v2_signup_test'
         srv.app.config['V2_AUTH'] = 'v2_auth_test'
         self.actor1 = 'cherry110531@gmail.com'
+        self.actor1_key = RSA.generate(1024)
         self.actor2 = 'banana110531@gmail.com'
+        self.actor2_key = RSA.generate(1024)
         self.alone = 'eiffel110531@gmail.com' # no connection guy
-        self.rsakey = RSA.generate(1024)
+        self.alone_key = RSA.generate(1024)
 
         self.app = srv.app.test_client()
 
@@ -74,6 +81,7 @@ class RegTestCase(unittest.TestCase):
                                      oauth_token_secret=oauth_token_secret,
                                      oauth_expires_in='5183999')
 
+    #@unittest.skip('test_v2_re_register_without_revoke')
     def test_register_with_invalid_security_code(self):
         self.init_signup_for_test(self.alone)
         from regioh.api_helper import generate_security_code
@@ -82,14 +90,15 @@ class RegTestCase(unittest.TestCase):
             headers = {'content-type': 'application/json'},
             data = {
                 'identity_code': generate_security_code(),
-                'email': 'apple110513@gmail.com',
-                'pubkey': self.rsakey.publickey().exportKey(),
+                'email': self.actor1,
+                'pubkey': self.actor1_key.publickey().exportKey(),
             })
         jrep = json.loads(rv.data)
         assert 200 == rv.status_code
         assert 200 == jrep.get('code', None)
         assert 'NO_LINKEDIN_ACCOUNT' == jrep['result']['status']
 
+    #@unittest.skip('test_v2_re_register_without_revoke')
     def test_register_with_expired_security_code(self):
         self.init_signup_for_test(self.alone)
         # get dynamo table and modify its expires_in_utc as created_in_utc
@@ -108,13 +117,14 @@ class RegTestCase(unittest.TestCase):
             data = {
                 'identity_code': srv.app.config['IDENTITY_CODE'],
                 'email': self.actor1,
-                'pubkey': self.rsakey.publickey().exportKey(),
+                'pubkey': self.actor1_key.publickey().exportKey(),
             })
         jrep = json.loads(rv.data)
         assert 200 == rv.status_code
         assert 200 == jrep.get('code', None)
         assert 'CODE_EXPIRES' == jrep['result']['status']
 
+    #@unittest.skip('test_v2_re_register_without_revoke')
     def test_v2_alone_register_success(self):
         self.init_signup_for_test(self.alone)
         rv = self.app.post(
@@ -123,13 +133,13 @@ class RegTestCase(unittest.TestCase):
             data = {
                 'identity_code': srv.app.config['IDENTITY_CODE'],
                 'email': self.alone,
-                'pubkey': self.rsakey.publickey().exportKey(),
+                'pubkey': self.alone_key.publickey().exportKey(),
             })
         jrep = json.loads(rv.data)
         assert 200 == rv.status_code
         assert 200 == jrep.get('code', None)
         assert 'SUCCESS' == jrep['result']['status']
-        assert self.rsakey.publickey().exportKey() == jrep['result']['pubkey']
+        assert self.alone_key.publickey().exportKey() == jrep['result']['pubkey']
         assert users[self.alone]['id'] == jrep['result']['linkedin_id']
 
         #############################
@@ -154,8 +164,9 @@ class RegTestCase(unittest.TestCase):
         assert jobj['contacts']['me']
         assert jobj['contacts']['me']['id'] == users[self.alone]['id']
         assert jobj['contacts']['me']['status'] == 'active'
-        assert jobj['contacts']['me']['pubkey'] == self.rsakey.publickey().exportKey()
+        assert jobj['contacts']['me']['pubkey'] == self.alone_key.publickey().exportKey()
 
+    #@unittest.skip('test_v2_re_register_without_revoke')
     def test_v2_actor1_reg_w_uninstalled_actor2(self):
         self.init_signup_for_test(self.actor1)
         rv = self.app.post(
@@ -164,13 +175,13 @@ class RegTestCase(unittest.TestCase):
             data = {
                 'identity_code': srv.app.config['IDENTITY_CODE'],
                 'email': self.actor1,
-                'pubkey': self.rsakey.publickey().exportKey(),
+                'pubkey': self.actor1_key.publickey().exportKey(),
             })
         jrep = json.loads(rv.data)
         assert 200 == rv.status_code
         assert 200 == jrep.get('code', None)
         assert 'SUCCESS' == jrep['result']['status']
-        assert self.rsakey.publickey().exportKey() == jrep['result']['pubkey']
+        assert self.actor1_key.publickey().exportKey() == jrep['result']['pubkey']
         assert users[self.actor1]['id'] == jrep['result']['linkedin_id']
 
         ######################################################
@@ -197,12 +208,13 @@ class RegTestCase(unittest.TestCase):
         assert contacts['me']
         assert contacts['me']['id'] == users[self.actor1]['id']
         assert contacts['me']['status'] == 'active'
-        assert contacts['me']['pubkey'] == self.rsakey.publickey().exportKey()
+        assert contacts['me']['pubkey'] == self.actor1_key.publickey().exportKey()
 
         # 2. check actor2 with 'inactive'
         assert contacts[users[self.actor2]['id']]['id'] == users[self.actor2]['id']
         assert contacts[users[self.actor2]['id']]['status'] == 'inactive'
 
+    #@unittest.skip('test_v2_re_register_without_revoke')
     def test_v2_actor1_reg_then_actor2_reg(self):
         self.init_signup_for_test(self.actor1)
         rv = self.app.post(
@@ -211,7 +223,7 @@ class RegTestCase(unittest.TestCase):
             data = {
                 'identity_code': srv.app.config['IDENTITY_CODE'],
                 'email': self.actor1,
-                'pubkey': self.rsakey.publickey().exportKey(),
+                'pubkey': self.actor1_key.publickey().exportKey(),
             })
         jrep = json.loads(rv.data)
         assert 200 == rv.status_code
@@ -223,13 +235,13 @@ class RegTestCase(unittest.TestCase):
             data = {
                 'identity_code': srv.app.config['IDENTITY_CODE'],
                 'email': self.actor2,
-                'pubkey': self.rsakey.publickey().exportKey(),
+                'pubkey': self.actor2_key.publickey().exportKey(),
             })
         jrep = json.loads(rv.data)
         assert 200 == rv.status_code
         assert 200 == jrep.get('code', None)
         assert 'SUCCESS' == jrep['result']['status']
-        assert self.rsakey.publickey().exportKey() == jrep['result']['pubkey']
+        assert self.actor2_key.publickey().exportKey() == jrep['result']['pubkey']
         assert users[self.actor2]['id'] == jrep['result']['linkedin_id']
 
         ######################################################
@@ -255,9 +267,10 @@ class RegTestCase(unittest.TestCase):
         assert contacts['me']
         assert contacts['me']['id'] == users[self.actor2]['id']
         assert contacts['me']['status'] == 'active'
-        assert contacts['me']['pubkey'] == self.rsakey.publickey().exportKey()
+        assert contacts['me']['pubkey'] == self.actor2_key.publickey().exportKey()
         # 2. check actor2 with 'active'
         assert contacts[users[self.actor1]['id']]['status'] == 'active'
+        assert contacts[users[self.actor1]['id']]['pubkey'] == self.actor1_key.publickey().exportKey()
 
         ######################################################
         # actor1 query fid # by name and download file
@@ -282,16 +295,54 @@ class RegTestCase(unittest.TestCase):
         assert contacts['me']
         assert contacts['me']['id'] == users[self.actor1]['id']
         assert contacts['me']['status'] == 'active'
-        assert contacts['me']['pubkey'] == self.rsakey.publickey().exportKey()
+        assert contacts['me']['pubkey'] == self.actor1_key.publickey().exportKey()
         # 2. check actor1 with 'active'
         assert contacts[users[self.actor2]['id']]['status'] == 'active'
+        assert contacts[users[self.actor2]['id']]['pubkey'] == self.actor2_key.publickey().exportKey()
 
-    @unittest.skip('test_v2_re_register_without_revoke')
-    def test_v2_re_register_without_revoke(self):
+
+
+class RegV3TestCase(unittest.TestCase):
+    """Test for File Operation"""
+
+    def setUp(self):
+        from Crypto.PublicKey import RSA
+        srv.app.config['TESTING'] = True
+        srv.app.config['V2_SIGNUP'] = 'v2_signup_test'
+        srv.app.config['V2_AUTH'] = 'v2_auth_test'
+        self.actor1 = 'cherry110531@gmail.com'
+        self.actor1_key = RSA.generate(1024)
+        self.actor2 = 'banana110531@gmail.com'
+        self.actor2_key = RSA.generate(1024)
+        self.alone = 'eiffel110531@gmail.com' # no connection guy
+        self.alone_key = RSA.generate(1024)
+
+        self.app = srv.app.test_client()
+
+    def tearDown(self):
+        from regioh.api_helper import get_dynamodb_table
+        for key in users:
+            tbl = get_dynamodb_table(srv.app.config['V2_AUTH'])
+            if tbl.has_item(hash_key=users[key]['id']):
+                item = tbl.get_item(
+                    hash_key=users[key]['id'],
+                    )
+                item.delete()
+
+    @unittest.skip('test_v2_refresh_connection_success')
+    def test_v3_revoke_success(self):
         pass
 
     @unittest.skip('test_v2_refresh_connection_success')
-    def test_v2_refresh_connection_success(self):
+    def test_v3_refresh_connection_success(self):
+        pass
+
+    @unittest.skip('test_v2_re_register_without_revoke')
+    def test_v3_re_register_without_revoke(self):
+        pass
+
+    @unittest.skip('test_v2_re_register_without_revoke')
+    def test_v3_re_register_then_revoke_then_reg(self):
         pass
 
 if __name__ == '__main__':

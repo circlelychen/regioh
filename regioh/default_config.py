@@ -41,7 +41,7 @@ if os.path.isfile(GD_AUTH_FILE):
 ########################################
 # credential for google dirve. gdapi
 #######################################
-GD_CRED_FILE = os.path.join(os.path.dirname(PROJECT_ROOT), '.cred.json')
+#GD_CRED_FILE = os.path.join(os.path.dirname(PROJECT_ROOT), '.cred.json')
 
 TOKEN_LIFE_TIME = 30
 SIGNUP = 'signup'

@@ -10,17 +10,18 @@ if path not in sys.path:
     sys.path.append(path)
 
 from regioh import app
-from regioh.api_helper import get_dynamodb_table
-from regioh.default_config import V2_AUTH
-from regioh.default_config import V2_SIGNUP
 
-from boto.dynamodb.condition import EQ
+def get_linkedin_oauth_cred_frm_dynamo(user_email):
+    from regioh.api_helper import get_dynamodb_table
+    from regioh.default_config import V2_AUTH
+    from regioh.default_config import V2_SIGNUP
+    from boto.dynamodb.condition import EQ
 
-def _get_oauth_credential(user_email):
     # get linkedin id by user_email
-    tbl = get_dynamodb_table(V2_AUTH)
+    tbl = get_dynamodb_table(app.config['V2_AUTH'])
     items = tbl.scan( scan_filter = {'email': EQ(user_email)},
                      attributes_to_get = ['linkedin_id'])
+
     linkedin_id = None
     for item in items:
         if item:
@@ -28,7 +29,7 @@ def _get_oauth_credential(user_email):
            break
 
     # get OAuth id by linkedin_id
-    tbl = get_dynamodb_table(V2_SIGNUP)
+    tbl = get_dynamodb_table(app.config['V2_SIGNUP'])
     try:
         items = tbl.scan( scan_filter = {'id': EQ(linkedin_id)},
                         attributes_to_get = ['oauth_token', 'oauth_token_secret'])
@@ -50,7 +51,7 @@ def connection(argv):
             sys.argv[0], 'user_email', 'output_file'))
 
     user_email = argv[0]
-    oauth_token, oauth_token_secret = _get_oauth_credential(user_email)
+    oauth_token, oauth_token_secret = get_linkedin_oauth_cred_frm_dynamo(user_email)
 
     from regioh.api_helper import get_linkedin_connection
     status, jobj = get_linkedin_connection(oauth_token, oauth_token_secret)
@@ -58,7 +59,6 @@ def connection(argv):
     linkedin_connections = []
     if jobj['_total'] != 0:
         app.logger.info(u"total : {0}".format(jobj['_total']))
-        app.logger.info(u"count : {0}".format(jobj['_count']))
         linkedin_connections = [x for x in jobj['values'] if x['id'] != 'private']
     for contact in linkedin_connections:
          app.logger.info(u"firstName: {0}, lastName: {1}".format(contact['firstName'],
@@ -69,7 +69,7 @@ def profile(argv):
             sys.argv[0], 'user_email', 'output_file'))
 
     user_email = argv[0]
-    oauth_token, oauth_token_secret = _get_oauth_credential(user_email)
+    oauth_token, oauth_token_secret = get_linkedin_oauth_cred_frm_dynamo(user_email)
 
     from regioh.api_helper import get_linkedin_basic_profile
     status, jobj = get_linkedin_basic_profile(oauth_token, oauth_token_secret)

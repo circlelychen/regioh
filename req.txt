@@ -8,5 +8,5 @@ pycrypto==2.6
 requests==1.2.0
 requests-oauthlib==0.3.0
 celery-with-redis==3.0
-gdapi==0.0.3
+gdapi==0.1.0
 uWSGI==1.9.10

@@ -11,7 +11,7 @@ import api_helper
 
 
 @celery.task(ignore_result=True)
-def update_contact_file(id, reg_item, profile, contact,
+def update_contact_file(id, reg_item, contact,
                         worker_name='cipherbox@cloudioh.com.cred.json'):
     from default_config import PROJECT_ROOT
     partner_contact_file_id = contact.get('LinkedIn_Contacts_FID', None)
@@ -55,8 +55,8 @@ def update_contact_file(id, reg_item, profile, contact,
 
     #update contacts content
     jobj['contacts'][id] = reg_item
-    for index in profile:
-        jobj['contacts'][id][index] = profile[index]
+    #for index in profile:
+    #   jobj['contacts'][id][index] = profile[index]
     api_helper._write_contacts_result(temp_path, code=0, contacts=jobj['contacts'])
 
     try:

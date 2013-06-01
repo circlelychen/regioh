@@ -6,7 +6,6 @@ import os
 from regioh import app
 from flask import Flask, request, jsonify, redirect, url_for, render_template
 from .exceptions import abort
-from api_helper import get_linkedin_basic_profile
 from api_helper import addto_dynamodb_signup
 from api_helper import generate_security_code
 from api_helper import notify_email
@@ -50,7 +49,10 @@ def signup(status):
                        )
                 )
 
-        status, profile = get_linkedin_basic_profile(access_token, access_secret)
+        from default_config import LK_CLIENT_SECRET
+        from default_config import LK_CLIENT_ID
+        lkapi = LinkedInApi.LKAPI(client_id=LK_CLIENT_ID, client_secret=LK_CLIENT_SECRET)
+        status, profile = lkapi.get_basic_profile(access_token, access_secret)
         if status != 200 or not profile:
             app.logger.error('status:{0} \n message:{1}'.format(status,
                                                                 profile))

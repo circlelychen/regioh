@@ -21,9 +21,7 @@ from default_config import LK_REDIRECT_URL
 from default_config import TOKEN_LIFE_TIME
 
 # Dynamodb tables definition 
-from default_config import SIGNUP
 from default_config import V2_SIGNUP
-from default_config import AUTH
 from default_config import V2_AUTH
 
 # gdapi module for interact with Google Drive
@@ -188,9 +186,14 @@ def get_code_check(token):
                                 'oauth_token_secret',
                                 'expires_in_utc']
             )
-    except DynamoDBKeyNotFoundError:
+    except Exception as e:
         # security code does not match any record
+        app.logger.error("[ERROR] hash_key[ {0} ] has no items in {1} table, "
+                         "exception: {2}".format(token,
+                                                 app.config['V2_SIGNUP'],
+                                                 repr(e)))
         result['status'] = MESSAGE['no_linkedin_account']
+        result['exception'] = repr(e)
         return result
 
     # check expires or not
@@ -209,10 +212,20 @@ def get_code_check(token):
     result['token'] = item['oauth1_data']
     result['oauth_token'] = item['oauth_token']
     result['oauth_token_secret'] = item['oauth_token_secret']
-    status, record = query_dynamodb_reg(item['id'])
+    try:
+        status, record = query_dynamodb_reg(item['id'])
+    except Exception as e:
+        # security code does not match any record
+        result['status'] = MESSAGE['no_linkedin_account']
+        result['exception'] = repr(e)
+        app.logger.error("[FAIL] hash_key[ {0} ] has no items in {1} table, "
+                         "exception: {2}".format(item['id'],
+                                                 app.config['V2_AUTH'],
+                                                 repr(e)))
+        return result
     if record:
         result['reg_data'] = {"gmail": record['email']}
-        app.logger.debug("get_code_check [SUCCESS]")
+    app.logger.debug('result: {0}'.format(result))
     return result
 
 def associate_db_data_v2(access_token, access_secret, linked_connections):

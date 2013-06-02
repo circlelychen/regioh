@@ -7,7 +7,6 @@ from flask import Flask, request, session, jsonify, redirect, url_for, render_te
 from regioh.exceptions import abort
 #from regioh.api_helper import fetch_public_key
 from regioh.api_helper import query_dynamodb_reg
-from regioh.api_helper import update_dynamodb
 from regioh.api_helper import get_code_check
 from regioh.utils import extract_request_data
 from regioh.utils import _format_response

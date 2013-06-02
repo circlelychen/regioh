@@ -6,8 +6,6 @@ import requests
 import urlparse
 from requests_oauthlib import OAuth1
 
-from regioh import app
-
 class LKOAuth1API(object):
     """LinkedIn OAuath1 API"""
 

@@ -285,24 +285,10 @@ def generate_security_code():
     populate=string.uppercase+string.digits
     return "-".join([ "".join(random.sample(populate, 5)) for i in range(5)])
 
-#def query_dynamodb_signup(linked_id):
-#    """Return status, record"""
-#    tbl = get_dynamodb_table(V2_SIGNUP, hash_key='token')
-#    if not tbl.has_item(hash_key=linked_id):
-#        return 'invalid', {}
-#    item = tbl.get_item(
-#        hash_key=linked_id
-#        )
-#    return item
-
-def update_dynamodb(item):
-    item.put()
-
 #def _generate_R():
 #    """Generate 256-bit random string R"""
 #    from Crypto import Random
 #    return Random.new().read(32)
-
 
 #def compute_C(rsa_pub_key_string, rand32):
 #    from Crypto.PublicKey import RSA
@@ -312,23 +298,6 @@ def update_dynamodb(item):
 #    cipher = PKCS1_v1_5.new(rsa_pub)
 #    return hexlify(cipher.encrypt(rand32))
 
-
-#def fetch_public_key(google_file_id):
-#    import requests
-#    url = GOOGLE_DOWNLOAD_URL
-#    resp = requests.get(url,
-#                        params={
-#                            'export': 'download',
-#                            'id': google_file_id,
-#                        }
-#                       )
-#    if resp.status_code == 200:
-#        return resp.content
-#    return None
-
-###########################################
-# helper function for Google Drive 
-##########################################
 def _write_contacts_result(path, code=0, contacts={}, extra={}):
     result = {}
     result['code'] = code
@@ -506,73 +475,3 @@ def check_file_exist(file_id):
     if drive_file is None:
         return False
     return True
-
-#def create_folder(parent_id, title):
-#    '''
-#    1. create folder if there is no items
-#    2. update folder if there is a item existing
-#
-#    return folder_id
-#    '''
-#    ga = _random_select_ga()
-#    folder_id = ga.create_folder(parent_id, title)
-#    return folder_id
-
-
-#def get_lk_token_status(linked_id, token):
-#    from boto.dynamodb.condition import EQ
-#    from default_config import MESSAGE
-#
-#    # check identity without token.
-#    if token == 'Null':
-#        status, record = query_dynamodb_reg(linked_id)
-#        if not record:
-#            return MESSAGE['identical']
-#        else:
-#            return MESSAGE['identical_and_exist']
-#
-#    # check identity with token. 
-#    message, item = get_token_status(token)
-#    if message == MESSAGE['no_linkedin_account'] or \
-#       message == MESSAGE['code_expired']:
-#        return message
-#    if item['linkedin_id'] == linked_id:
-#        status, record = query_dynamodb_reg(linked_id)
-#        if not record:
-#            return MESSAGE['identical']
-#        else:
-#            return MESSAGE['identical_and_exist']
-#    else:
-#        return MESSAGE['non_identical']
-#
-
-#def get_oauth2_request_url():
-#    client_id = LK_CLIENT_ID
-#    client_secret = LK_CLIENT_SECRET
-#    redirect_url = LK_REDIRECT_URL 
-#    authorize_url = 'https://www.linkedin.com/uas/oauth2/authorization'
-#    scope = "r_basicprofile%20r_emailaddress"
-#    state = "DCEEFWF45453sdffef424"
-#
-#    params = []
-#    params.append("response_type={0}".format("code"))
-#    params.append("client_id={0}".format(client_id))
-#    params.append("scope={0}".format(scope))
-#    params.append("state={0}".format(state))
-#    params.append("redirect_uri={0}".format(redirect_url))
-#    return "{0}?{1}".format(authorize_url, "&".join(params))
-
-#def get_oauth2_access_token(code):
-#    client_id = LK_CLIENT_ID
-#    client_secret = LK_CLIENT_SECRET
-#    redirect_url = LK_REDIRECT_URL 
-#    access_token_url = 'https://www.linkedin.com/uas/oauth2/accessToken'
-#    params = {"client_id": client_id, "client_secret": client_secret,
-#              "code": code, "grant_type": "authorization_code",
-#              "redirect_uri":redirect_url}
-#    resp = requests.request('POST', access_token_url, params=params)
-#    if resp.status_code == 200:
-#        return resp.json()
-#    else:
-#        return None
-#

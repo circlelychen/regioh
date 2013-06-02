@@ -37,119 +37,7 @@ import tempfile
 import json
 from tasks import update_contact_file
 
-LINKEDIN_API_URL = 'https://api.linkedin.com/'
 GOOGLE_DOWNLOAD_URL = 'https://docs.google.com/uc'
-
-def _linkedin_request(url, access_token, access_secret):
-    #use linkedin API with Oauth 1.0 token
-    client_id = LK_CLIENT_ID
-    client_secret = LK_CLIENT_SECRET
-    #url = urlparse.urljoin(LINKEDIN_API_URL,
-    #                       'v1/people/~:(id,first-name,last-name,email-address)')
-    oauth = OAuth1(client_id, client_secret=client_secret,
-                   resource_owner_key=access_token,
-                   resource_owner_secret=access_secret)
-
-    resp = requests.get(url,
-                        params={
-                            'format': 'json'
-                        },
-                        auth=oauth
-                       )
-    if resp.status_code == 200:
-        return resp.status_code, resp.json()
-    return resp.status_code, {'reason': 'unknown error', 'raw': resp.content}
-    #resp = requests.get(url=url,
-    #                    params={
-    #                        "oauth2_access_token": linked_token,
-    #                        "format": "json"
-    #                    },
-    #                    verify=False)
-    #
-
-def get_linkedin_basic_profile(access_token, access_secret):
-    url = urlparse.urljoin(
-        LINKEDIN_API_URL,
-        'v1/people/~:(id,first-name,last-name,picture-url,public-profile-url,positions,headline,email-address)')
-    return _linkedin_request(url, access_token, access_secret)
-
-def get_linkedin_connection(access_token, access_secret):
-    url = urlparse.urljoin(
-        LINKEDIN_API_URL, 'v1/people/~/connections'
-        ':(id,first-name,last-name,positions,picture-url,public-profile-url)')
-    return _linkedin_request(url, access_token, access_secret)
-
-def _access_v1_token(client_id, client_secret, oauth_token, oauth_secret, pin_code):
-    access_token_url = 'https://api.linkedin.com/uas/oauth/accessToken'
-    oauth = OAuth1(client_id,
-                   client_secret=client_secret,
-                   resource_owner_key=oauth_token,
-                   resource_owner_secret=oauth_secret,
-                   verifier=pin_code)
-    r = requests.post(url=access_token_url, auth=oauth, verify=False)
-    if r.status_code == 200:
-        request_token = dict(urlparse.parse_qsl(r.content))
-        return (r.status_code,
-                r.content,
-                request_token['oauth_token'],
-                request_token['oauth_token_secret'],
-                request_token['oauth_expires_in'])
-    return r.status_code, r.content, None, None
-
-def get_oauth1_access_token(oauth_token, oauth_verifier):
-    from flask import session
-    client_id = LK_CLIENT_ID
-    client_secret = LK_CLIENT_SECRET
-    try:
-        oauth_secret = session[oauth_token]
-    except:
-        app.logger.error('session[{0}] is None'.format(oauth_token,
-                                                       session.get(oauth_token,
-                                                                  None)))
-        raise KeyError
-    session.pop(oauth_token, None)
-
-    app.logger.debug("[check] client_id is {0}".format(client_id))
-    app.logger.debug("[check] client_secret is {0}".format(client_secret))
-    app.logger.debug("[check] oauth_token is {0}".format(oauth_token))
-    app.logger.debug("[check] oauth_secret is {0}".format(oauth_secret))
-    app.logger.debug("[check] oauth_verifier is {0}".format(oauth_verifier))
-
-    http_code, http_content, access_token, access_secret, expires_in = _access_v1_token(client_id,
-                                                                                        client_secret,
-                                                                                        oauth_token,
-                                                                                        oauth_secret,
-                                                                                        oauth_verifier)
-    return http_content, access_token, access_secret, expires_in
-
-def _request_v1_token(client_id, client_secret):
-    request_token_url      = 'https://api.linkedin.com/uas/oauth/requestToken'
-    oauth = OAuth1(client_id, client_secret=client_secret)
-    r = requests.post(url=request_token_url, params={"scope":
-                                                     "r_fullprofile r_emailaddress r_network"},
-                      auth=oauth, verify=False)
-    if r.status_code == 200:
-        request_token = dict(urlparse.parse_qsl(r.content))
-        return (r.status_code, r.content, request_token['oauth_token'],
-                request_token['oauth_token_secret'])
-    return r.status_code, r.content, None, None
-
-def get_oauth1_request_url():
-    from flask import session
-    client_id = LK_CLIENT_ID
-    client_secret = LK_CLIENT_SECRET
-    app.logger.debug("[check] client_id is {0}".format(client_id))
-    app.logger.debug("[check] client_secret is {0}".format(client_secret))
-
-    http_code, http_content, oauth_token, oauth_secret = _request_v1_token(client_id, client_secret)
-
-    # cache oauth_secret into session
-    app.logger.debug("[check] client_id is {0}".format(oauth_token))
-    app.logger.debug("[check] client_secret is {0}".format(oauth_secret))
-    session[oauth_token] = oauth_secret
-
-    authorize_url ='https://api.linkedin.com/uas/oauth/authorize'
-    return "{0}?oauth_token={1}".format(authorize_url, oauth_token)
 
 def get_code_check(token):
     ''' (str) -> dict
@@ -225,7 +113,6 @@ def get_code_check(token):
         return result
     if record:
         result['reg_data'] = {"gmail": record['email']}
-    app.logger.debug('result: {0}'.format(result))
     return result
 
 def associate_db_data_v2(access_token, access_secret, linked_connections):
@@ -398,24 +285,10 @@ def generate_security_code():
     populate=string.uppercase+string.digits
     return "-".join([ "".join(random.sample(populate, 5)) for i in range(5)])
 
-#def query_dynamodb_signup(linked_id):
-#    """Return status, record"""
-#    tbl = get_dynamodb_table(V2_SIGNUP, hash_key='token')
-#    if not tbl.has_item(hash_key=linked_id):
-#        return 'invalid', {}
-#    item = tbl.get_item(
-#        hash_key=linked_id
-#        )
-#    return item
-
-def update_dynamodb(item):
-    item.put()
-
 #def _generate_R():
 #    """Generate 256-bit random string R"""
 #    from Crypto import Random
 #    return Random.new().read(32)
-
 
 #def compute_C(rsa_pub_key_string, rand32):
 #    from Crypto.PublicKey import RSA
@@ -425,23 +298,6 @@ def update_dynamodb(item):
 #    cipher = PKCS1_v1_5.new(rsa_pub)
 #    return hexlify(cipher.encrypt(rand32))
 
-
-#def fetch_public_key(google_file_id):
-#    import requests
-#    url = GOOGLE_DOWNLOAD_URL
-#    resp = requests.get(url,
-#                        params={
-#                            'export': 'download',
-#                            'id': google_file_id,
-#                        }
-#                       )
-#    if resp.status_code == 200:
-#        return resp.content
-#    return None
-
-###########################################
-# helper function for Google Drive 
-##########################################
 def _write_contacts_result(path, code=0, contacts={}, extra={}):
     result = {}
     result['code'] = code
@@ -462,24 +318,36 @@ def _write_contacts_result(path, code=0, contacts={}, extra={}):
     with open(path, "wb") as fout:
         json.dump(result, fout, indent=2)
 
-def get_associated_contacts(oauth_token, oauth_token_secret):
+def _get_associated_contacts(reg_item, oauth_token, oauth_token_secret):
     '''
-    >>> get_associated_contacts(oauth_token, oauth_token_secret)
+    >>> _get_associated_contacts(oauth_token, oauth_token_secret)
     {
+        "me": {content object}
         "{ID}": {contact object},
         "{ID}": {contact object},
         ...
     }
     '''
+    from regioh.LinkedInApi import LinkedInApi
+    lkapi = LinkedInApi.LKAPI(client_id=LK_CLIENT_ID, client_secret=LK_CLIENT_SECRET)
+
+    # get linkedIn profile
+    status_profile, jobj_profile = lkapi.get_basic_profile(oauth_token,
+                                                           oauth_token_secret)
     # get linkedIn connections
     linkedin_connections = []
-    status, jobj = get_linkedin_connection(oauth_token,oauth_token_secret)
+    status, jobj = lkapi.get_connection(oauth_token,oauth_token_secret)
     if jobj['_total'] != 0:
         linkedin_connections = [x for x in jobj['values'] if x['id'] != 'private']
 
     # associate connection with reg database
     contacts = associate_db_data_v2(oauth_token,oauth_token_secret,
                                     linkedin_connections)
+
+    #add myself as one record in contacts
+    contacts['me'] = reg_item
+    for index in jobj_profile:
+        contacts['me'][index] = jobj_profile[index]
     return contacts
 
 def register_email(linkedin_id, user_email, pubkey, token, record):
@@ -489,23 +357,16 @@ def register_email(linkedin_id, user_email, pubkey, token, record):
     #file_id, perm_id = upload_contacts_and_share(contacts, user_email)
     file_id, perm_id = upload_contacts_and_share(contacts, user_email)
 
-    # get linkedIn profile
-    status_profile, jobj_profile = get_linkedin_basic_profile(record['oauth_token'],
-                                                              record['oauth_token_secret'])
-    # get connetion associated with REG database
-    contacts = get_associated_contacts(record['oauth_token'],
-                                       record['oauth_token_secret'])
-
-    # insert new record into dynamo db
+    # insert new record into dynamo db as contacts['me']
     item = addto_dynamodb_reg(linkedin_id, pubkey=pubkey,
                               token=token, perm_id=perm_id,
                               email=user_email, status='active',
                               LinkedIn_Contacts_FID=file_id)
 
-    #add myself as one record in contacts
-    contacts['me'] = item
-    for index in jobj_profile:
-        contacts['me'][index] = jobj_profile[index]
+    # get connetion associated with REG database
+    contacts = _get_associated_contacts(item, record['oauth_token'],
+                                        record['oauth_token_secret'])
+
 
     #file_id, perm_id = upload_contacts_and_share(contacts, user_email)
     file_id, perm_id = upload_contacts_and_share(contacts, user_email)
@@ -526,7 +387,7 @@ def register_email(linkedin_id, user_email, pubkey, token, record):
             ACCOUNTS[index % len(ACCOUNTS)],
             key))
         update_contact_file.apply_async(
-            (linkedin_id, item, jobj_profile, contacts[key], ACCOUNTS[index % len(ACCOUNTS)]),
+            (linkedin_id, contacts['me'], contacts[key], ACCOUNTS[index % len(ACCOUNTS)]),
             serializer='json')
         index = index + 1
 
@@ -614,73 +475,3 @@ def check_file_exist(file_id):
     if drive_file is None:
         return False
     return True
-
-#def create_folder(parent_id, title):
-#    '''
-#    1. create folder if there is no items
-#    2. update folder if there is a item existing
-#
-#    return folder_id
-#    '''
-#    ga = _random_select_ga()
-#    folder_id = ga.create_folder(parent_id, title)
-#    return folder_id
-
-
-#def get_lk_token_status(linked_id, token):
-#    from boto.dynamodb.condition import EQ
-#    from default_config import MESSAGE
-#
-#    # check identity without token.
-#    if token == 'Null':
-#        status, record = query_dynamodb_reg(linked_id)
-#        if not record:
-#            return MESSAGE['identical']
-#        else:
-#            return MESSAGE['identical_and_exist']
-#
-#    # check identity with token. 
-#    message, item = get_token_status(token)
-#    if message == MESSAGE['no_linkedin_account'] or \
-#       message == MESSAGE['code_expired']:
-#        return message
-#    if item['linkedin_id'] == linked_id:
-#        status, record = query_dynamodb_reg(linked_id)
-#        if not record:
-#            return MESSAGE['identical']
-#        else:
-#            return MESSAGE['identical_and_exist']
-#    else:
-#        return MESSAGE['non_identical']
-#
-
-#def get_oauth2_request_url():
-#    client_id = LK_CLIENT_ID
-#    client_secret = LK_CLIENT_SECRET
-#    redirect_url = LK_REDIRECT_URL 
-#    authorize_url = 'https://www.linkedin.com/uas/oauth2/authorization'
-#    scope = "r_basicprofile%20r_emailaddress"
-#    state = "DCEEFWF45453sdffef424"
-#
-#    params = []
-#    params.append("response_type={0}".format("code"))
-#    params.append("client_id={0}".format(client_id))
-#    params.append("scope={0}".format(scope))
-#    params.append("state={0}".format(state))
-#    params.append("redirect_uri={0}".format(redirect_url))
-#    return "{0}?{1}".format(authorize_url, "&".join(params))
-
-#def get_oauth2_access_token(code):
-#    client_id = LK_CLIENT_ID
-#    client_secret = LK_CLIENT_SECRET
-#    redirect_url = LK_REDIRECT_URL 
-#    access_token_url = 'https://www.linkedin.com/uas/oauth2/accessToken'
-#    params = {"client_id": client_id, "client_secret": client_secret,
-#              "code": code, "grant_type": "authorization_code",
-#              "redirect_uri":redirect_url}
-#    resp = requests.request('POST', access_token_url, params=params)
-#    if resp.status_code == 200:
-#        return resp.json()
-#    else:
-#        return None
-#

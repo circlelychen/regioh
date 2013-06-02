@@ -4,17 +4,20 @@
 """
 import os
 from regioh import app
-from flask import Flask, request, jsonify, redirect, url_for, render_template
+from flask import Flask, request, session, jsonify, redirect, url_for, render_template
 from .exceptions import abort
-from api_helper import get_linkedin_basic_profile
 from api_helper import addto_dynamodb_signup
 from api_helper import generate_security_code
 from api_helper import notify_email
-from api_helper import get_oauth1_request_url
-from api_helper import get_oauth1_access_token
+
 import json
 import base64
 import datetime
+
+from regioh.default_config import LK_CLIENT_SECRET
+from regioh.default_config import LK_CLIENT_ID
+from regioh.LinkedInApi import LKOAuth1API
+from regioh.LinkedInApi import LinkedInApi
 
 @app.route('/signup/<status>', methods=['GET'])
 def signup(status):
@@ -34,9 +37,12 @@ def signup(status):
             app.logger.error('LinkedIn redirect Request failed')
             abort(401)
         try:
-            content, access_token, access_secret, expires_in = get_oauth1_access_token(oauth_token,
-                                                                    oauth_verifier)
-        except Exception:
+            lk_oauth1_api = LKOAuth1API.LKOAuth1API(client_id=LK_CLIENT_ID,
+                                                    client_secret=LK_CLIENT_SECRET)
+            content, access_token, access_secret, expires_in = lk_oauth1_api.get_access_token(oauth_token,
+                                                                                              session[oauth_token],
+                                                                                              oauth_verifier)
+        except Exception as e:
             abort(401)
 
         if not access_token or not access_secret:
@@ -50,7 +56,8 @@ def signup(status):
                        )
                 )
 
-        status, profile = get_linkedin_basic_profile(access_token, access_secret)
+        lkapi = LinkedInApi.LKAPI(client_id=LK_CLIENT_ID, client_secret=LK_CLIENT_SECRET)
+        status, profile = lkapi.get_basic_profile(access_token, access_secret)
         if status != 200 or not profile:
             app.logger.error('status:{0} \n message:{1}'.format(status,
                                                                 profile))
@@ -125,7 +132,11 @@ def signup(status):
 
     # Oauth1
     if status == 'start':
-        return redirect(get_oauth1_request_url())
+        lk_oauth1_api = LKOAuth1API.LKOAuth1API(client_id=LK_CLIENT_ID,
+                                                client_secret=LK_CLIENT_SECRET)
+        ticket, url = lk_oauth1_api.get_request_url()
+        session[ticket['key']] = ticket['value']
+        return redirect(url)
     else:
         return redirect(url_for('home'))
 

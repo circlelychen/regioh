@@ -23,20 +23,17 @@ celery.conf.update(
 users = {
     'banana110531@gmail.com': {
         'id': 'tmoijVoPVd',
-        'oauth_token': '6ba8a7ac-bf3d-495d-8f1f-6a0d7994074d',
-        'oauth_token_secret': '1d1e2754-0d24-4cf4-bd70-f364f55c4ac4',
+        'access_token': 'AQUNP6Wy4_0iACNX1JHB5IWzZB0wSU349_i3xeuh0AMXPOGKGiXT3D7p1sCaLoYLrxVf9PVJe1f4ETCNd2OcY_CSX90dNtvU7NzT5DdmCYYnkPxlPY1dGSay8cu5ZJsEHhJAY_LDpw91s22EizsY7GlBSyZI64dt4Laci7TVPuSMpBKi4Zw',
         'cred_file' : 'banana110531@gmail.com.cred.json'
     },
     'eiffel110531@gmail.com': {
         'id': 'wLvv1_RuLF',
-        'oauth_token': '0022fe66-538b-4624-93f6-7f48d9709ecf',
-        'oauth_token_secret': 'c4701ac6-a3b2-4be1-ab38-9a71394bab60',
+        'access_token': 'AQWCQV1IomioadETXTpfyq6bnPFQlDVhU5fhm5Qc4Q10yv50rsPjc6oxd-y0D0LHhx7TOmzFZ6kj8UQoTBsXJiCYsBHh7npchRO8fETgULCLY-YzFOM-HUJ_2TYs1isNnOvm_BIWnXJv0Tm-K2ff3Q49_-vaZ_9FtTS1tcPVWhwLRfqvyqk',
         'cred_file' : 'eiffel110531@gmail.com.cred.json'
     },
     'cherry110531@gmail.com': {
         'id': 'V1g8BEFEw7',
-        'oauth_token': '42e82ea3-9159-4b0f-9735-cef889b2e1c1',
-        'oauth_token_secret': '36fb10db-9bab-4956-a46e-a3938871273e',
+        'access_token': 'AQUiX-ek-U6VHVqY2-JrQmfM1bF7OvL0Ayhb5gxzWE9camyrK50ACeTWfQFkGnEeZRegEExIYj8mIIVBIhzVDiCJ-Yhj8hw-hzNOMEpzAxjWEPZNCO2wp15QvqA7Vk3nBoiBGgCVrDRHy1ctoycrrGAhUWBBv4oDOYnBfm71Pol5NLi5nMY',
         'cred_file' : 'cherry110531@gmail.com.cred.json'
     }
 }
@@ -72,13 +69,11 @@ class RegV2TestCase(unittest.TestCase):
         from regioh.api_helper import generate_security_code
         from regioh.api_helper import addto_dynamodb_signup
         srv.app.config['IDENTITY_CODE'] = generate_security_code()
-        oauth_token = users[user]['oauth_token']
-        oauth_token_secret = users[user]['oauth_token_secret']
+        access_token = users[user]['access_token']
         #add truecirclely2gmail.com to signup table
         item = addto_dynamodb_signup(users[user]['id'],
                                      token=srv.app.config['IDENTITY_CODE'],
-                                     oauth_token=oauth_token,
-                                     oauth_token_secret=oauth_token_secret,
+                                     access_token=access_token,
                                      oauth_expires_in='5183999')
 
     #@unittest.skip('test_v2_re_register_without_revoke')

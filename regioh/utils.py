@@ -59,8 +59,7 @@ def _format_response(item):
         "linkedin_id": <str>
     }
     '''
-    del item['oauth_token']
-    del item['oauth_token_secret']
+    del item['access_token']
     del item['token']
     del item['reg_data']
     return item

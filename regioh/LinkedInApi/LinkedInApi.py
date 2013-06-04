@@ -16,39 +16,38 @@ class LKAPI(object):
         self._client_id = client_id
         self._client_secret = client_secret
 
-    def _linkedin_request(self, url, oauth_token, oauth_secret):
-        oauth = OAuth1(self._client_id, client_secret=self._client_secret,
-                       resource_owner_key=oauth_token,
-                       resource_owner_secret=oauth_secret)
+    def _linkedin_request(self, url, access_token):
+        #oauth = OAuth1(self._client_id, client_secret=self._client_secret,
+        #               resource_owner_key=oauth_token,
+        #               resource_owner_secret=oauth_secret)
 
-        resp = requests.get(url,
+        #resp = requests.get(url,
+        #                    params={
+        #                        'format': 'json'
+        #                    },
+        #                    auth=oauth
+        #                )
+        resp = requests.get(url=url,
                             params={
-                                'format': 'json'
+                                "oauth2_access_token": access_token,
+                                "format": "json"
                             },
-                            auth=oauth
-                        )
+                            verify=False)
         if resp.status_code == 200:
             return resp.status_code, resp.json()
         return resp.status_code, {'reason': 'unknown error', 'raw': resp.content}
-        #resp = requests.get(url=url,
-        #                    params={
-        #                        "oauth2_access_token": linked_token,
-        #                        "format": "json"
-        #                    },
-        #                    verify=False)
-        #
 
-    def get_basic_profile(self, oauth_token=None, oauth_token_secret=None):
+    def get_basic_profile(self, access_token=None):
         url = urlparse.urljoin(
             self._LINKEDIN_API_URL,
             'v1/people/~:(id,first-name,last-name,picture-url,public-profile-url,positions,headline,email-address)')
-        return self._linkedin_request(url, oauth_token, oauth_token_secret)
+        return self._linkedin_request(url, access_token)
 
-    def get_connection(self, oauth_token=None, oauth_token_secret=None):
+    def get_connection(self, access_token=None):
         url = urlparse.urljoin(
             self._LINKEDIN_API_URL, 'v1/people/~/connections'
             ':(id,first-name,last-name,positions,picture-url,public-profile-url)')
-        return self._linkedin_request(url, oauth_token, oauth_token_secret)
+        return self._linkedin_request(url, access_token)
 
 if __name__ == '__main__':
     logger = logging.getLogger('LinkedInApi.LinkedInApi')

@@ -68,7 +68,7 @@ class RegV2TestCase(unittest.TestCase):
                     )
                 item.delete()
 
-    def init_signup_for_test(self, user):
+    def init_signup(self, user):
         from regioh.api_helper import generate_security_code
         from regioh.api_helper import addto_dynamodb_signup
         srv.app.config['IDENTITY_CODE'] = generate_security_code()
@@ -83,7 +83,7 @@ class RegV2TestCase(unittest.TestCase):
 
     #@unittest.skip('test_v2_re_register_without_revoke')
     def test_register_with_invalid_security_code(self):
-        self.init_signup_for_test(self.alone)
+        self.init_signup(self.alone)
         from regioh.api_helper import generate_security_code
         rv = self.app.post(
             '/v2/register',
@@ -100,7 +100,7 @@ class RegV2TestCase(unittest.TestCase):
 
     #@unittest.skip('test_v2_re_register_without_revoke')
     def test_register_with_expired_security_code(self):
-        self.init_signup_for_test(self.alone)
+        self.init_signup(self.alone)
         # get dynamo table and modify its expires_in_utc as created_in_utc
         from regioh.api_helper import get_dynamodb_table
         tbl = get_dynamodb_table(srv.app.config['V2_SIGNUP'],
@@ -126,7 +126,7 @@ class RegV2TestCase(unittest.TestCase):
 
     #@unittest.skip('test_v2_re_register_without_revoke')
     def test_v2_alone_register_success(self):
-        self.init_signup_for_test(self.alone)
+        self.init_signup(self.alone)
         rv = self.app.post(
             '/v2/register',
             headers = {'content-type': 'application/json'},
@@ -168,7 +168,7 @@ class RegV2TestCase(unittest.TestCase):
 
     #@unittest.skip('test_v2_re_register_without_revoke')
     def test_v2_actor1_reg_w_uninstalled_actor2(self):
-        self.init_signup_for_test(self.actor1)
+        self.init_signup(self.actor1)
         rv = self.app.post(
             '/v2/register',
             headers = {'content-type': 'application/json'},
@@ -216,7 +216,7 @@ class RegV2TestCase(unittest.TestCase):
 
     #@unittest.skip('test_v2_re_register_without_revoke')
     def test_v2_actor1_reg_then_actor2_reg(self):
-        self.init_signup_for_test(self.actor1)
+        self.init_signup(self.actor1)
         rv = self.app.post(
             '/v2/register',
             headers = {'content-type': 'application/json'},
@@ -228,7 +228,7 @@ class RegV2TestCase(unittest.TestCase):
         jrep = json.loads(rv.data)
         assert 200 == rv.status_code
 
-        self.init_signup_for_test(self.actor2)
+        self.init_signup(self.actor2)
         rv = self.app.post(
             '/v2/register',
             headers = {'content-type': 'application/json'},

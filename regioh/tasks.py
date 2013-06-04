@@ -18,10 +18,12 @@ def update_contact_file(id, reg_item, contact,
     if partner_contact_file_id is None:
         return False
 
+    #etag = None
     try:
         ga = GDAPI(os.path.join(os.path.dirname(PROJECT_ROOT), 'accounts', worker_name))
         _, temp_path = tempfile.mkstemp()
-        success = ga.download_file(partner_contact_file_id, temp_path)
+        drive_file = ga.download_file(partner_contact_file_id, temp_path)
+        #etag = drive_file['etag']
 
         app.logger.debug("{0} download {1}'s [{2}] to {3}"
                         "".format(worker_name, contact.get('email', None),
@@ -60,6 +62,7 @@ def update_contact_file(id, reg_item, contact,
     api_helper._write_contacts_result(temp_path, code=0, contacts=jobj['contacts'])
 
     try:
+        #result = ga.update_file(partner_contact_file_id, temp_path, etag=etag)
         result = ga.update_file(partner_contact_file_id, temp_path)
         app.logger.debug("{0} upload {1}'s [{2}]"
                         "".format(worker_name, contact.get('email', None),

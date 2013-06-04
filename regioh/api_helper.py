@@ -414,27 +414,19 @@ def upload_contacts_and_share(contacts, user_email):
     _, temp_path = tempfile.mkstemp()
     with open(temp_path, "wb") as fout:
         _write_contacts_result(temp_path, code=0, contacts=contacts)
-    file_id = upload_file(app.config['gd_shared_roo_id'], temp_path,
-                          '{0} ({1}) DO NOT REMOVE THIS FILE.ioh'.format(
-                              'Cipherbox LinkedIn Contacts',
-                              user_email))
+
+    ga = _random_select_ga()
+    result = ga.create_or_update_file(app.config['gd_shared_roo_id'],
+                                        temp_path,
+                                        '{0} ({1}) DO NOT REMOVE THIS FILE.ioh'.format(
+                                            'Cipherbox LinkedIn Contacts',
+                                            user_email))
+    file_id =  result['id']
+
     #os.unlink(temp_path)
     perm_id = make_user_reader_for_file(file_id, user_email)
     os.unlink(temp_path)
     return file_id, perm_id
-
-def upload_file(parent_id, file_path, file_name):
-    '''
-    use content in local file_path to
-
-    1. create file if there is no file
-    2. update file if there is a file existing
-
-    return file_id
-    '''
-    ga = _random_select_ga()
-    result = ga.create_or_update_file(parent_id, file_path, file_name)
-    return result['id']
 
 def make_user_reader_for_file(file_id, user_email):
     ga = _random_select_ga()

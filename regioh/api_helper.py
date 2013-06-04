@@ -49,8 +49,7 @@ def get_code_check(token):
         "status": <str>,
         "token": <str>,
         "linkedin_id", <str>,
-        "oauth_token": <str>,
-        "oauth_token_secret": <str>,
+        "access_token", <str>,
         "reg_data": {
             "gmail": <str>
             }
@@ -62,21 +61,19 @@ def get_code_check(token):
     tbl = get_dynamodb_table(app.config['V2_SIGNUP'], hash_key='token')
     result = {"status": "no_linkedin_account",
               "token": "",
-              "oauth_token": "",
-              "oauth_token_secret": "",
+              "access_token": "",
               "reg_data": ""}
     try:
         item = tbl.get_item(
             hash_key=token,
             attributes_to_get = ['id',
-                                'oauth1_data',
-                                'oauth_token',
-                                'oauth_token_secret',
+                                'oauth2_data',
+                                'access_token',
                                 'expires_in_utc']
             )
     except Exception as e:
         # security code does not match any record
-        app.logger.error("[ERROR] hash_key[ {0} ] has no items in {1} table, "
+        app.logger.debug("[ERROR] hash_key[ {0} ] has no items in {1} table, "
                          "exception: {2}".format(token,
                                                  app.config['V2_SIGNUP'],
                                                  repr(e)))
@@ -97,9 +94,8 @@ def get_code_check(token):
     # security code match and not expire,
     result['status'] = MESSAGE['success']
     result['linkedin_id'] = item['id']
-    result['token'] = item['oauth1_data']
-    result['oauth_token'] = item['oauth_token']
-    result['oauth_token_secret'] = item['oauth_token_secret']
+    result['token'] = item['oauth2_data']
+    result['access_token'] = item['access_token']
     try:
         status, record = query_dynamodb_reg(item['id'])
     except Exception as e:
@@ -115,7 +111,7 @@ def get_code_check(token):
         result['reg_data'] = {"gmail": record['email']}
     return result
 
-def associate_db_data_v2(access_token, access_secret, linked_connections):
+def associate_db_data_v2(linked_connections):
     result = {}
     ids = []
     for linkedin_item in linked_connections:
@@ -227,9 +223,8 @@ def addto_dynamodb_reg(linked_id, pubkey='N/A', token='N/A',
     item.put()
     return item
 
-def addto_dynamodb_signup(linked_id, token='N/A', oauth1_data='N/A',
-                          oauth_token='N/A', oauth_token_secret='N/A',
-                          oauth_expires_in='N/A'):
+def addto_dynamodb_signup(linked_id, token='N/A', oauth2_data='N/A',
+                          access_token='N/A', oauth_expires_in='N/A'):
     """Return status, record"""
     if app.config['TESTING']:
         tbl = get_dynamodb_table(app.config['V2_SIGNUP'], hash_key='token')
@@ -249,10 +244,9 @@ def addto_dynamodb_signup(linked_id, token='N/A', oauth1_data='N/A',
             hash_key=token,
             attrs={
                 'id': linked_id,
-                'oauth_token': oauth_token,
-                'oauth_token_secret': oauth_token_secret,
+                'access_token': access_token,
                 'oauth_expires_in': oauth_expires_in,
-                'oauth1_data': oauth1_data,
+                'oauth2_data': oauth2_data,
                 'created_in_utc': utc_now.strftime("%Y-%m-%d %H:%M"),
                 'expires_in_utc': utc_now_10_min_later.strftime("%Y-%m-%d %H:%M")
             }
@@ -318,7 +312,7 @@ def _write_contacts_result(path, code=0, contacts={}, extra={}):
     with open(path, "wb") as fout:
         json.dump(result, fout, indent=2)
 
-def _get_associated_contacts(reg_item, oauth_token, oauth_token_secret):
+def _get_associated_contacts(reg_item, access_token):
     '''
     >>> _get_associated_contacts(oauth_token, oauth_token_secret)
     {
@@ -332,17 +326,15 @@ def _get_associated_contacts(reg_item, oauth_token, oauth_token_secret):
     lkapi = LinkedInApi.LKAPI(client_id=LK_CLIENT_ID, client_secret=LK_CLIENT_SECRET)
 
     # get linkedIn profile
-    status_profile, jobj_profile = lkapi.get_basic_profile(oauth_token,
-                                                           oauth_token_secret)
+    status_profile, jobj_profile = lkapi.get_basic_profile(access_token)
     # get linkedIn connections
     linkedin_connections = []
-    status, jobj = lkapi.get_connection(oauth_token,oauth_token_secret)
+    status, jobj = lkapi.get_connection(access_token)
     if jobj['_total'] != 0:
         linkedin_connections = [x for x in jobj['values'] if x['id'] != 'private']
 
     # associate connection with reg database
-    contacts = associate_db_data_v2(oauth_token,oauth_token_secret,
-                                    linkedin_connections)
+    contacts = associate_db_data_v2(linkedin_connections)
 
     #add myself as one record in contacts
     contacts['me'] = reg_item
@@ -364,8 +356,7 @@ def register_email(linkedin_id, user_email, pubkey, token, record):
                               LinkedIn_Contacts_FID=file_id)
 
     # get connetion associated with REG database
-    contacts = _get_associated_contacts(item, record['oauth_token'],
-                                        record['oauth_token_secret'])
+    contacts = _get_associated_contacts(item, record['access_token'],)
 
 
     #file_id, perm_id = upload_contacts_and_share(contacts, user_email)
@@ -423,9 +414,11 @@ def upload_contacts_and_share(contacts, user_email):
                                             user_email))
     file_id =  result['id']
 
-    #os.unlink(temp_path)
-    perm_id = make_user_reader_for_file(file_id, user_email)
     os.unlink(temp_path)
+
+    ga.unshare(file_id, user_email)
+    perm_id = make_user_reader_for_file(file_id, user_email)
+
     return file_id, perm_id
 
 def make_user_reader_for_file(file_id, user_email):

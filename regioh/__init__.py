@@ -33,7 +33,7 @@ def setup_logging():
                 %(message)s
                             ''')
             handler = SESHandler(AWS_ACCESS_KEY, AWS_SECRET_ACCESS_KEY, AWS_SES_SENDER,
-                                'cipherbox@cloudioh.com', '[REGSVR] REGIOH Failed')
+                                'howard_chen@cloudioh.com', '[REGSVR] REGIOH Failed')
             handler.setFormatter(formatter)
             handler.setLevel(logging.ERROR)
             app.logger.addHandler(handler)
@@ -70,6 +70,8 @@ def setup_shared_folder():
             app.config['gd_shared_roo_id'] = result[0]['id']
             return True
 
+        #gd_shared_root_id does not exist, create folder and share to each
+        #worker
         root_id = master_ga.create_folder(u'root', os.path.basename(__name__))
         success = master_ga.unshare(root_id)
         app.config['gd_shared_roo_id'] = root_id

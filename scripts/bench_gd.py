@@ -14,7 +14,6 @@ if path not in sys.path:
     sys.path.append(path)
 
 from regioh.default_config import PROJECT_ROOT
-from regioh import api_helper
 from gdapi.gdapi import GDAPI
 q = Queue()
 
@@ -56,16 +55,6 @@ def worker(folder_id, queue, ga, contacts):
                                                    ])
                                           )
         os.unlink(temp_path)
-
-        # 2. update connections' files
-        #for i in xrange(CONNECT_NUM):
-        #    # 3. download file
-        #    _, temp_path = tempfile.mkstemp()
-        #    if api_helper.download_file(file_id, temp_path):
-        #        with open(temp_path, "wb") as fout:
-        #            json.dump(contacts, fout, indent=2)
-        #        # 4. update file
-        #        api_helper.update_file(file_id, temp_path)
 
         queue.task_done()
 

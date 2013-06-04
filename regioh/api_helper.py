@@ -436,42 +436,7 @@ def upload_file(parent_id, file_path, file_name):
     result = ga.create_or_update_file(parent_id, file_path, file_name)
     return result['id']
 
-def update_file(file_id, file_path):
-    '''
-    use content in local file_path to overwrite remote
-    file pointed by file_id
-
-    return file_id
-    '''
-    ga = _random_select_ga()
-    result = ga.update_file(file_id, file_path)
-    try:
-        #app.logger.info('### \n{0} \n'.format(result))
-        return result['id']
-    except Exception as e:
-        app.logger.error('[error] in update_file' )
-        app.logger.error(result)
-
-
-def download_file(file_id, dest_path):
-    ga = _random_select_ga()
-    success = ga.download_file(file_id, dest_path)
-    return success
-
-def unshare(res_id, perm_id):
-    ga = _random_select_ga()
-    success = ga.unshare(res_id, perm_id)
-    return success
-
-
 def make_user_reader_for_file(file_id, user_email):
     ga = _random_select_ga()
     result = ga.make_user_reader_for_file(file_id, user_email)
     return result['id']
-
-def check_file_exist(file_id):
-    ga = _random_select_ga()
-    drive_file = ga.get_file_meta(file_id)
-    if drive_file is None:
-        return False
-    return True

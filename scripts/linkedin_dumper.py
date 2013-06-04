@@ -11,7 +11,17 @@ if path not in sys.path:
 
 from regioh import app
 
-def get_linkedin_oauth_cred_frm_dynamo(user_email):
+######################################
+# Linkedin API 
+################################################
+from regioh.default_config import LK_CLIENT_SECRET
+from regioh.default_config import LK_CLIENT_ID
+from regioh.LinkedInApi import LKOAuth1API
+from regioh.LinkedInApi import LKOAuth2API
+from regioh.LinkedInApi import LinkedInApi
+################################################
+
+def _get_linkedin_oauth1_cred_frm_dynamo(user_email):
     from regioh.api_helper import get_dynamodb_table
     from regioh.default_config import V2_AUTH
     from regioh.default_config import V2_SIGNUP
@@ -45,16 +55,49 @@ def get_linkedin_oauth_cred_frm_dynamo(user_email):
             oauth_token_secret = item['oauth_token_secret']
     return oauth_token, oauth_token_secret
 
+def _get_linkedin_oauth2_cred_frm_dynamo(user_email):
+    from regioh.api_helper import get_dynamodb_table
+    from regioh.default_config import V2_AUTH
+    from regioh.default_config import V2_SIGNUP
+    from boto.dynamodb.condition import EQ
+
+    # get linkedin id by user_email
+    tbl = get_dynamodb_table(app.config['V2_AUTH'])
+    items = tbl.scan( scan_filter = {'email': EQ(user_email)},
+                     attributes_to_get = ['linkedin_id'])
+
+    linkedin_id = None
+    for item in items:
+        if item:
+           linkedin_id = item['linkedin_id']
+           break
+
+    # get OAuth id by linkedin_id
+    tbl = get_dynamodb_table(app.config['V2_SIGNUP'])
+    try:
+        items = tbl.scan( scan_filter = {'id': EQ(linkedin_id)},
+                        attributes_to_get = ['access_token'])
+    except Exception as e:
+        print '[ERROR] invalid primary key with {0}:'.format(linkedin_id)
+        sys.exit(0)
+
+    access_token = None
+    for item in items:
+        if item and \
+           item.get('access_token', None):
+            access_token = item['access_token']
+    return access_token
+
 def connection(argv):
     if len(argv) < 1:
         sys.exit("Usage: {0} connection <{1}> ".format(
             sys.argv[0], 'user_email', 'output_file'))
 
     user_email = argv[0]
-    oauth_token, oauth_token_secret = get_linkedin_oauth_cred_frm_dynamo(user_email)
+    access_token = _get_linkedin_oauth2_cred_frm_dynamo(user_email)
 
-    from regioh.api_helper import get_linkedin_connection
-    status, jobj = get_linkedin_connection(oauth_token, oauth_token_secret)
+    lkapi = LinkedInApi.LKAPI(client_id=LK_CLIENT_ID, client_secret=LK_CLIENT_SECRET)
+    status, jobj = lkapi.get_connection(access_token)
 
     linkedin_connections = []
     if jobj['_total'] != 0:
@@ -69,10 +112,11 @@ def profile(argv):
             sys.argv[0], 'user_email', 'output_file'))
 
     user_email = argv[0]
-    oauth_token, oauth_token_secret = get_linkedin_oauth_cred_frm_dynamo(user_email)
+    access_token = _get_linkedin_oauth2_cred_frm_dynamo(user_email)
 
-    from regioh.api_helper import get_linkedin_basic_profile
-    status, jobj = get_linkedin_basic_profile(oauth_token, oauth_token_secret)
+    lkapi = LinkedInApi.LKAPI(client_id=LK_CLIENT_ID, client_secret=LK_CLIENT_SECRET)
+    status, jobj = lkapi.get_basic_profile(access_token)
+
     app.logger.info(u"profile: ==== \n\n {0}".format(json.dumps(jobj, indent=2)))
 
 def doCommand(cmd, *args):

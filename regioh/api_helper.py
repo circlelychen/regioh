@@ -346,7 +346,6 @@ def register_email(linkedin_id, user_email, pubkey, token, record):
 
     contacts = {}
 
-    #file_id, perm_id = upload_contacts_and_share(contacts, user_email)
     file_id, perm_id = upload_contacts_and_share(contacts, user_email)
 
     # insert new record into dynamo db as contacts['me']
@@ -359,7 +358,14 @@ def register_email(linkedin_id, user_email, pubkey, token, record):
     contacts = _get_associated_contacts(item, record['access_token'],)
 
 
-    #file_id, perm_id = upload_contacts_and_share(contacts, user_email)
+    #########################
+    # must unshare before share to customer
+    ########################
+    success = unshare(file_id, perm_id)
+    if not success:
+        app.logger.error('unshare permission fail')
+    ########################
+
     file_id, perm_id = upload_contacts_and_share(contacts, user_email)
     app.logger.debug(" create contact for {0}".format(user_email))
 
@@ -381,6 +387,17 @@ def register_email(linkedin_id, user_email, pubkey, token, record):
             (linkedin_id, contacts['me'], contacts[key], ACCOUNTS[index % len(ACCOUNTS)]),
             serializer='json')
         index = index + 1
+
+def _select_master():
+    '''
+    randomly select google agent from ACCOUNTS
+    '''
+    import random
+    from default_config import PROJECT_ROOT
+    from default_config import MASTER
+    ga = GDAPI(os.path.join(os.path.dirname(PROJECT_ROOT), 'accounts',
+                            MASTER))
+    return ga
 
 def _random_select_ga():
     '''
@@ -414,14 +431,19 @@ def upload_contacts_and_share(contacts, user_email):
                                             user_email))
     file_id =  result['id']
 
-    os.unlink(temp_path)
 
-    ga.unshare(file_id, user_email)
     perm_id = make_user_reader_for_file(file_id, user_email)
 
+    os.unlink(temp_path)
+
     return file_id, perm_id
+
+def unshare(file_id, perm_id):
+    ga = _random_select_ga()
+    return ga.unshare(file_id, perm_id)
 
 def make_user_reader_for_file(file_id, user_email):
     ga = _random_select_ga()
     result = ga.make_user_reader_for_file(file_id, user_email)
     return result['id']
+
